@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Mogul - Home</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+    <link rel="stylesheet" href="assets/css/home.css">
+</head>
+<body>
+    <div class="home-container">
+        <div class="left-column">
+            <img src="https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/particles/sand.png" alt="Particle Mogul Logo" class="game-logo">
+            <h1 class="game-title">PARTICLE<br>MOGUL</h1>
+            
+            <div class="info-text">
+                For leaderboard and autosave functionality,<br>
+                use your player name for best performance!
+            </div>
+            
+            <div class="input-container">
+                <input type="text" id="playerName" class="player-input" placeholder="Player Name (optional)">
+            </div>
+            
+            <div class="divider">OR</div>
+            
+            <div class="menu-container-row">
+                <div id="continueSection">
+                    <div class="no-save-message" id="noSaveMessage" style="display: none;">No saved game found</div>
+                    <button class="menu-button" id="continueButton">SAVED GAMES</button>
+                </div>
+                
+                <button class="menu-button" id="newGameButton">NEW GAME</button>
+            </div>
+        </div>
+        
+        <div class="right-column">
+            <canvas id="particleCanvas" class="particle-canvas"></canvas>
+        </div>
+        
+        <div class="version-info">v1.0</div>
+    </div>
+
+    <!-- Save Game Modal -->
+    <div id="saveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>SAVED GAMES</h2>
+                <button class="close-button" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="save-games-container">
+                    <div id="noSaveMessageModal" style="display: none; text-align: center; color: rgba(255, 255, 255, 0.7); margin: 40px 0; font-family: 'Courier New', Courier, monospace; letter-spacing: 1px;">No saved games found</div>
+                    <div class="save-game-card" id="saveGameCard">
+                        <div class="card-content">
+                            <div class="save-slot">
+                                <span class="slot-number">#1</span>
+                            </div>
+                            <div class="save-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Saved game:</span>
+                                    <span class="detail-value" id="saveDateDisplay">-</span>
+                                </div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="card-btn play-btn" id="playSaveBtn">PLAY</button>
+                                <button class="card-btn delete-btn" id="deleteSaveBtn">DELETE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check for existing save
+        const storageKey = 'particle_mogul_save';
+        const continueButton = document.getElementById('continueButton');
+        const noSaveMessage = document.getElementById('noSaveMessage');
+        const newGameButton = document.getElementById('newGameButton');
+
+        // New Game functionality
+        newGameButton.addEventListener('click', () => {
+            const saveData = localStorage.getItem(storageKey);
+            if (saveData) {
+                if (confirm('Starting a new game will overwrite your existing save. Are you sure?')) {
+                    clearSaveData();
+                    window.location.href = 'game.html';
+                }
+            } else {
+                window.location.href = 'game.html';
+            }
+        });
+
+        function checkForSave() {
+            try {
+                const saveData = localStorage.getItem(storageKey);
+                if (saveData) {
+                    continueButton.style.display = 'block';
+                    noSaveMessage.style.display = 'none';
+                }
+            } catch (error) {
+                console.log('Could not check for save data');
+            }
+        }
+
+        // Simple falling particles system
+        class FallingParticle {
+            constructor(canvas, particleSize) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.particleSize = particleSize;
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * this.canvas.width;
+                this.y = -this.particleSize;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = 0;
+                this.settled = false;
+                
+                // Sand colors
+                const sandColors = ['#D2B48C', '#DEB887', '#BC9A6A'];
+                this.color = sandColors[Math.floor(Math.random() * sandColors.length)];
+            }
+
+            update(gravity, maxVelocity) {
+                if (this.settled) return;
+
+                this.vy += gravity;
+                this.vy = Math.min(this.vy, maxVelocity);
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off walls
+                if (this.x < 0 || this.x > this.canvas.width) {
+                    this.vx *= -0.5;
+                    this.x = Math.max(0, Math.min(this.canvas.width, this.x));
+                }
+
+                // Reset when falling off bottom
+                if (this.y > this.canvas.height) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                this.ctx.fillStyle = this.color;
+                this.ctx.fillRect(this.x - this.particleSize/2, this.y - this.particleSize/2, this.particleSize, this.particleSize);
+                
+                // Add subtle border
+                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(this.x - this.particleSize/2, this.y - this.particleSize/2, this.particleSize, this.particleSize);
+            }
+
+            settle(gridX, gridY) {
+                this.settled = true;
+                this.x = gridX * this.particleSize + this.particleSize / 2;
+                this.y = gridY * this.particleSize + this.particleSize / 2;
+                this.vx = 0;
+                this.vy = 0;
+            }
+        }
+
+        class ParticleSystem {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.particleSize = 30;
+                this.gravity = 0.15;
+                this.maxVelocity = 3;
+                this.maxParticles = 50;
+                this.spawnRate = 0.1;
+                this.sandGrid = [];
+                this.gridWidth = 0;
+                this.gridHeight = 0;
+                
+                this.resize();
+                this.initGrid();
+                this.init();
+                this.animate();
+                
+                window.addEventListener('resize', () => this.resize());
+            }
+
+            resize() {
+                this.canvas.width = this.canvas.offsetWidth;
+                this.canvas.height = this.canvas.offsetHeight;
+                this.initGrid();
+            }
+
+            initGrid() {
+                this.gridWidth = Math.ceil(this.canvas.width / this.particleSize);
+                this.gridHeight = Math.ceil(this.canvas.height / this.particleSize);
+                this.sandGrid = [];
+                for (let y = 0; y < this.gridHeight; y++) {
+                    this.sandGrid[y] = [];
+                    for (let x = 0; x < this.gridWidth; x++) {
+                        this.sandGrid[y][x] = null;
+                    }
+                }
+            }
+
+            init() {
+                // Start with fewer particles for stacking effect
+                for (let i = 0; i < 10; i++) {
+                    const particle = new FallingParticle(this.canvas, this.particleSize);
+                    particle.y = Math.random() * this.canvas.height * 0.3; // Start in upper portion
+                    this.particles.push(particle);
+                }
+            }
+
+            spawnParticle() {
+                if (Math.random() < this.spawnRate && this.particles.length < this.maxParticles) {
+                    const particle = new FallingParticle(this.canvas, this.particleSize);
+                    // Spawn in center column for line effect
+                    particle.x = this.canvas.width / 2 + (Math.random() - 0.5) * this.particleSize;
+                    this.particles.push(particle);
+                }
+            }
+
+            updateParticles() {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const particle = this.particles[i];
+                    
+                    if (particle.settled) continue;
+
+                    particle.update(this.gravity, this.maxVelocity, this.canvas.width);
+
+                    // Check if particle hits bottom of screen
+                    if (particle.y >= this.canvas.height - this.particleSize) {
+                        particle.y = this.canvas.height - this.particleSize;
+                        const gridX = Math.floor(particle.x / this.particleSize);
+                        const gridY = Math.floor(particle.y / this.particleSize);
+                        particle.settle(gridX, gridY);
+                        
+                        if (gridY >= 0 && gridY < this.sandGrid.length && 
+                            gridX >= 0 && gridX < this.sandGrid[0].length) {
+                            this.sandGrid[gridY][gridX] = particle;
+                        }
+                        continue;
+                    }
+
+                    // Check if particle hits other particles
+                    const gridX = Math.floor(particle.x / this.particleSize);
+                    const gridY = Math.floor(particle.y / this.particleSize);
+                    
+                    if (gridX < 0 || gridX >= this.sandGrid[0].length || gridY < 0 || gridY >= this.sandGrid.length) {
+                        continue;
+                    }
+                    
+                    if (gridY >= this.sandGrid.length - 1 || 
+                        (gridY >= 0 && gridY < this.sandGrid.length - 1 && 
+                         gridX >= 0 && gridX < this.sandGrid[0].length && 
+                         this.sandGrid[gridY + 1][gridX])) {
+                        
+                        // Try to slide to sides if blocked
+                        const canSlideLeft = gridX > 0 && !this.sandGrid[gridY][gridX - 1] && 
+                                           (gridY >= this.sandGrid.length - 1 || !this.sandGrid[gridY + 1][gridX - 1]);
+                        const canSlideRight = gridX < this.sandGrid[0].length - 1 && !this.sandGrid[gridY][gridX + 1] && 
+                                            (gridY >= this.sandGrid.length - 1 || !this.sandGrid[gridY + 1][gridX + 1]);
+                        
+                        if (canSlideLeft && canSlideRight) {
+                            particle.x += (Math.random() - 0.5) * this.particleSize * 2;
+                        } else if (canSlideLeft) {
+                            particle.x -= this.particleSize;
+                        } else if (canSlideRight) {
+                            particle.x += this.particleSize;
+                        } else {
+                            // Settle the particle
+                            particle.settle(gridX, gridY);
+                            
+                            if (gridY >= 0 && gridY < this.sandGrid.length && 
+                                gridX >= 0 && gridX < this.sandGrid[0].length) {
+                                this.sandGrid[gridY][gridX] = particle;
+                            }
+                        }
+                    }
+                }
+            }
+
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Update particles
+                this.updateParticles();
+                
+                // Draw particles
+                this.particles.forEach(particle => {
+                    particle.draw();
+                });
+                
+                // Occasionally spawn new particles
+                this.spawnParticle();
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        function clearSaveData() {
+            try {
+                localStorage.removeItem(storageKey);
+            } catch (error) {
+                console.log('Could not clear save data');
+            }
+        }
+
+        // Event listeners
+        continueButton.addEventListener('click', () => {
+            console.log('Continue button clicked');
+            showSaveModal();
+        });
+
+        // Modal functionality
+        const modal = document.getElementById('saveModal');
+        const closeModalBtn = document.getElementById('closeModal');
+
+        function showSaveModal() {
+            console.log('showSaveModal called');
+            try {
+                const saveData = localStorage.getItem(storageKey);
+                console.log('saveData:', saveData);
+                
+                const saveGameCard = document.getElementById('saveGameCard');
+                const noSaveMessageModal = document.getElementById('noSaveMessageModal');
+
+                if (saveData) {
+                    const save = JSON.parse(saveData);
+                    
+                    // Populate the save date display
+                    const saveDateDisplay = document.getElementById('saveDateDisplay');
+                    if (saveDateDisplay) {
+                        saveDateDisplay.textContent = save.date || new Date().toLocaleDateString();
+                    }
+                    
+                    if (saveGameCard) saveGameCard.style.display = 'block';
+                    if (noSaveMessageModal) noSaveMessageModal.style.display = 'none';
+                } else {
+                    if (saveGameCard) saveGameCard.style.display = 'none';
+                    if (noSaveMessageModal) noSaveMessageModal.style.display = 'block';
+                }
+                
+                console.log('Setting modal display to block');
+                modal.style.display = 'block';
+            } catch (error) {
+                console.log('Could not load save data:', error);
+                const saveGameCard = document.getElementById('saveGameCard');
+                const noSaveMessageModal = document.getElementById('noSaveMessageModal');
+                if (saveGameCard) saveGameCard.style.display = 'none';
+                if (noSaveMessageModal) noSaveMessageModal.style.display = 'block';
+                modal.style.display = 'block';
+            }
+        }
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Card button event listeners
+        document.getElementById('playSaveBtn').addEventListener('click', () => {
+            window.location.href = 'game.html';
+        });
+
+        document.getElementById('deleteSaveBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to delete this save game?')) {
+                clearSaveData();
+                modal.style.display = 'none';
+                checkForSave();
+            }
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Generate random sand pattern for buttons
+        function generateSandPattern() {
+            const buttons = document.querySelectorAll('.menu-button');
+            buttons.forEach(button => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 16;
+                canvas.height = 16;
+                const ctx = canvas.getContext('2d');
+                
+                // Create random sand pixels
+                const colors = ['#D2B48C', '#DEB887', '#BC9A6A'];
+                for (let x = 0; x < 16; x++) {
+                    for (let y = 0; y < 16; y++) {
+                        ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                        ctx.fillRect(x, y, 2, 2);
+                    }
+                }
+                
+                // Apply as background
+                const dataUrl = canvas.toDataURL();
+                button.style.background = `repeating-linear-gradient(45deg, transparent, transparent 16px), url(${dataUrl})`;
+                button.style.backgroundSize = '16px 16px, 16px 16px';
+            });
+        }
+
+        // Initialize
+        checkForSave();
+        new ParticleSystem('particleCanvas');
+        generateSandPattern();
+        
+    </script>
+</body>
+</html>

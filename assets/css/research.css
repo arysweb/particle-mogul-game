@@ -1,0 +1,261 @@
+.research-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.82);
+    z-index: 1100;
+}
+
+.research-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(1200px, 92vw);
+    min-height: 70vh;
+    max-height: 86vh;
+    padding: 24px;
+    background: rgba(32, 32, 32, 0.97);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 14px;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.research-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.research-grid-viewport {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.research-grid-viewport::-webkit-scrollbar {
+    display: none;
+}
+
+.research-grid-board {
+    --research-board-size: 936px;
+    position: relative;
+    width: var(--research-board-size);
+    height: var(--research-board-size);
+    margin: 0 auto;
+    transform: scale(var(--research-grid-zoom, 1));
+    transform-origin: center center;
+    transition: transform 0.12s ease;
+}
+
+.research-grid-helper,
+.research-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+}
+
+.research-grid-helper {
+    pointer-events: none;
+    z-index: 0;
+}
+
+.research-grid-helper-cell {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.research-grid {
+    grid-auto-flow: row dense;
+    align-content: start;
+    justify-items: stretch;
+    gap: 8px;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    padding: 12px;
+    z-index: 1;
+}
+
+.research-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    min-height: 64px;
+    width: 96px;
+    max-width: 96px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    justify-self: center;
+    align-self: center;
+}
+
+.research-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+}
+
+.research-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--research-fill, 0%);
+    background: rgba(255, 255, 255, 0.12);
+    z-index: 0;
+    transition: height 0.25s linear;
+}
+
+.research-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.research-card.is-completed {
+    border-color: rgba(88, 214, 141, 0.55);
+}
+
+.research-card.is-completed::before {
+    background: rgba(88, 214, 141, 0.2);
+}
+
+.research-card.is-active {
+    border-color: rgba(255, 215, 0, 0.55);
+}
+
+.research-card.is-disabled {
+    opacity: 0.7;
+}
+
+.research-card-icon {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
+.research-card.is-primary .research-card-icon {
+    width: 56px;
+    height: 56px;
+}
+
+.research-card-title {
+    font: bold 11px 'Courier New', monospace;
+    color: #ffffff;
+    text-align: center;
+    line-height: 1;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.research-card.is-primary .research-card-title {
+    font-size: 11px;
+}
+
+.research-empty-state {
+    display: none;
+    padding: 24px;
+    text-align: center;
+    font: 14px 'Courier New', monospace;
+    color: #cfcfcf;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+}
+
+.research-tooltip {
+    position: absolute;
+    display: none;
+    min-width: 320px;
+    max-width: 420px;
+    padding: 14px 16px;
+    background: rgba(72, 72, 72, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 10px;
+    pointer-events: none;
+    z-index: 5;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.research-tooltip-title {
+    font: bold 24px 'Courier New', monospace;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+.research-tooltip-copy,
+.research-tooltip-cost,
+.research-tooltip-time {
+    font: 16px 'Courier New', monospace;
+    color: #f0f0f0;
+    line-height: 1.5;
+}
+
+.research-tooltip-copy {
+    margin-bottom: 8px;
+}
+
+.research-tooltip-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.research-tooltip-cost {
+    margin-top: 0;
+}
+
+.research-cost-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.research-cost-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    font: 16px 'Courier New', monospace;
+}
+
+.research-cost-coin-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+}
+
+.research-cost-particle-icon {
+    width: 18px;
+    height: 18px;
+}

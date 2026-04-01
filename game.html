@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Mogul - Sand Simulation Game</title>
+    <link rel="stylesheet" href="assets/css/global.css">
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div class="top-bar">
+            <div class="wallet-section">
+                <div class="wallet-info">
+                    <img src="https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/coin.png" alt="Coin" class="icon">
+                    <span class="wallet-balance" id="walletBalance">0</span>
+                </div>
+                <div class="sell-cap">sell cap: <span id="sellCap">10</span></div>
+            </div>
+            <div class="particle-iron-group">
+                <div class="particle-card">
+                    <div class="particle-info">
+                        <div class="sand-icon"></div>
+                        <span class="particle-count" id="sandCount">0</span>
+                    </div>
+                    <button class="sell-button" id="sellButton">SELL</button>
+                </div>
+                <div class="particle-card">
+                    <div class="particle-info">
+                        <div class="iron-icon"></div>
+                        <span class="particle-count" id="ironCount">0</span>
+                    </div>
+                    <button class="sell-button" id="sellIronButton">SELL</button>
+                </div>
+                <div class="particle-card">
+                    <div class="particle-info">
+                        <div class="copper-icon"></div>
+                        <span class="particle-count" id="copperCount">0</span>
+                    </div>
+                    <button class="sell-button" id="sellCopperButton">SELL</button>
+                </div>
+                <div class="particle-card">
+                    <div class="particle-info">
+                        <div class="silver-icon"></div>
+                        <span class="particle-count" id="silverCount">0</span>
+                    </div>
+                    <button class="sell-button" id="sellSilverButton">SELL</button>
+                </div>
+                <div class="particle-card">
+                    <div class="particle-info">
+                        <div class="gold-icon"></div>
+                        <span class="particle-count" id="goldCount">0</span>
+                    </div>
+                    <button class="sell-button" id="sellGoldButton">SELL</button>
+                </div>
+                <div class="particle-card" data-particle-type="emerald">
+                    <div class="particle-info">
+                        <div class="emerald-icon"></div>
+                        <span class="particle-count" id="emeraldCount">0</span>
+                    </div>
+                    <button class="sell-button" id="sellEmeraldButton">SELL</button>
+                </div>
+                <div class="particle-card" data-particle-type="ruby">
+                    <div class="particle-info">
+                        <div class="ruby-icon"></div>
+                        <span class="particle-count" id="rubyCount">0</span>
+                    </div>
+                    <button class="sell-button" id="sellRubyButton">SELL</button>
+                </div>
+            </div>
+        </div>
+        <div class="production-panel">
+            <div class="extractor">
+                <h3 class="extractor-heading"><span>Extractor</span><span id="extractorBonusLabel" class="extractor-bonus-label"></span></h3>
+                <div class="extractor-section">
+                    <div class="extractor-value"><span id="dropRate">2</span> / sec</div>
+                </div>
+                <button class="upgrade-button" id="upgradeButton">UPGRADE SPEED</button>
+            </div>
+            <div class="trader-card" id="traderCard">
+                <h3 class="trader-heading"><span>Trader</span><button type="button" class="trader-toggle-link" id="traderToggleLink">TURN OFF</button></h3>
+                <div class="trader-description" id="traderDescription">Unlock the Trader from Research.</div>
+                <div class="trader-controls">
+                    <div class="trader-control-column">
+                        <button class="upgrade-button trader-button" id="traderSelectButton">SELECT PARTICLE</button>
+                    </div>
+                    <div class="trader-control-column">
+                        <button class="upgrade-button trader-button" id="traderUpgradeButton">UPGRADE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="legend">
+            <h3>Particle Info</h3>
+            <div class="legend-item">
+                <div class="legend-icon sand-icon"></div>
+                <div class="legend-info">
+                    <div class="legend-name">Sand</div>
+                    <div class="legend-stats">1 in 1 | Price: 1</div>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-icon iron-icon"></div>
+                <div class="legend-info">
+                    <div class="legend-name">Iron</div>
+                    <div class="legend-stats">1 in 100 | Price: 10</div>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-icon copper-icon"></div>
+                <div class="legend-info">
+                    <div class="legend-name">Copper</div>
+                    <div class="legend-stats">1 in 300 | Price: 30</div>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-icon silver-icon"></div>
+                <div class="legend-info">
+                    <div class="legend-name">Silver</div>
+                    <div class="legend-stats">1 in 500 | Price: 100</div>
+                </div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-icon gold-icon"></div>
+                <div class="legend-info">
+                    <div class="legend-name">Gold</div>
+                    <div class="legend-stats">1 in 1000 | Price: 300</div>
+                </div>
+            </div>
+            <div class="legend-item" data-particle-type="emerald">
+                <div class="legend-icon emerald-icon"></div>
+                <div class="legend-info">
+                    <div class="legend-name">Emerald</div>
+                    <div class="legend-stats">1 in 3000 | Price: 500</div>
+                </div>
+            </div>
+            <div class="legend-item" data-particle-type="ruby">
+                <div class="legend-icon ruby-icon"></div>
+                <div class="legend-info">
+                    <div class="legend-name">Ruby</div>
+                    <div class="legend-stats">1 in 10.000 | Price: 3000</div>
+                </div>
+            </div>
+        </div>
+        <div class="research-market-card">
+            <div class="research-section">
+                <img src="https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/research.png" alt="Research" class="research-icon">
+                <h3>Research</h3>
+            </div>
+            <div class="market-section">
+                <img src="https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/marketplace.png" alt="Market" class="market-icon">
+                <h3>Market</h3>
+            </div>
+        </div>
+    </div>
+    <div class="research-modal" id="researchModal">
+        <div class="research-modal-content">
+            <div class="modal-header">
+                <h2>Research Lab</h2>
+                <button class="close-button" id="closeResearchModal">×</button>
+            </div>
+            <div class="research-modal-body">
+                <div class="research-grid-viewport" id="researchGridViewport">
+                    <div class="research-grid-board" id="researchGridBoard">
+                        <div class="research-grid-helper" id="researchGridHelper"></div>
+                        <div class="research-grid" id="researchGrid"></div>
+                    </div>
+                </div>
+                <div class="research-empty-state" id="researchEmptyState">No research available yet.</div>
+                <div class="research-tooltip" id="researchTooltip"></div>
+            </div>
+        </div>
+    </div>
+    <!-- Market Modal -->
+    <div class="market-modal" id="marketModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Marketplace</h2>
+                <button class="close-button" id="closeMarketModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="market-columns">
+                    <!-- Left Column - Available Particles -->
+                    <div class="market-column">
+                        <h3>You Have</h3>
+                        <div class="particle-list">
+                            <div class="particle-item">
+                                <div class="particle-icon sand-icon"></div>
+                                <span class="particle-count" id="marketSandCount">0</span>
+                            </div>
+                            <div class="particle-item">
+                                <div class="particle-icon iron-icon"></div>
+                                <span class="particle-count" id="marketIronCount">0</span>
+                            </div>
+                            <div class="particle-item">
+                                <div class="particle-icon copper-icon"></div>
+                                <span class="particle-count" id="marketCopperCount">0</span>
+                            </div>
+                            <div class="particle-item">
+                                <div class="particle-icon silver-icon"></div>
+                                <span class="particle-count" id="marketSilverCount">0</span>
+                            </div>
+                            <div class="particle-item">
+                                <div class="particle-icon gold-icon"></div>
+                                <span class="particle-count" id="marketGoldCount">0</span>
+                            </div>
+                            <div class="particle-item" data-particle-type="emerald">
+                                <div class="particle-icon emerald-icon"></div>
+                                <span class="particle-count" id="marketEmeraldCount">0</span>
+                            </div>
+                            <div class="particle-item" data-particle-type="ruby">
+                                <div class="particle-icon ruby-icon"></div>
+                                <span class="particle-count" id="marketRubyCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right Column - Market Trading -->
+                    <div class="market-column">
+                        <h3>You Receive</h3>
+                        <div class="particle-list">
+                            <div class="particle-item">
+                                <div class="particle-icon iron-icon"></div>
+                                <span class="particle-price">1/150</span>
+                            </div>
+                            <div class="particle-item">
+                                <div class="particle-icon copper-icon"></div>
+                                <span class="particle-price">1/300</span>
+                            </div>
+                            <div class="particle-item">
+                                <div class="particle-icon silver-icon"></div>
+                                <span class="particle-price">1/750</span>
+                            </div>
+                            <div class="particle-item">
+                                <div class="particle-icon gold-icon"></div>
+                                <span class="particle-price">1/1500</span>
+                            </div>
+                            <div class="particle-item" data-particle-type="emerald">
+                                <div class="particle-icon emerald-icon"></div>
+                                <span class="particle-price">1/3000</span>
+                            </div>
+                            <div class="particle-item" data-particle-type="ruby">
+                                <div class="particle-icon ruby-icon"></div>
+                                <span class="particle-price">1/10000</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Bottom Row - Slider -->
+                <div class="slider-row">
+                    <div class="trade-summary" id="tradeSummary">Select what you want to trade.</div>
+                    <div class="slider-selection">
+                        <div class="selected-particle" id="leftSelected">
+                            <div class="particle-icon sand-icon"></div>
+                            <span class="selected-count">0</span>
+                        </div>
+                        <div class="slider-container">
+                            <input type="range" class="slider" id="marketSlider" min="0" max="100" value="0">
+                            <div class="slider-meta">
+                                <span class="slider-value">0</span>
+                                <span class="slider-max" id="marketSliderMax">Max: 0</span>
+                            </div>
+                        </div>
+                        <div class="selected-particle" id="rightSelected">
+                            <div class="particle-icon iron-icon"></div>
+                            <span class="selected-count">1/150</span>
+                        </div>
+                    </div>
+                    <button class="trade-button" id="tradeButton">TRADE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/entities/Particle.js"></script>
+    <script src="js/systems/Physics.js"></script>
+    <script src="js/ui/UI.js"></script>
+    <script src="js/ui/UIEffects.js"></script>
+    <script src="js/ui/UIMarket.js"></script>
+    <script src="js/ui/UIResearch.js"></script>
+    <script src="js/ui/UIDisplay.js"></script>
+    <script src="js/core/GameData.js"></script>
+    <script src="js/core/SaveManager.js"></script>
+    <script src="js/core/Game.js"></script>
+    <script src="js/core/GameResearch.js"></script>
+    <script src="js/core/GameEconomy.js"></script>
+    <script src="js/core/GameWorld.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
