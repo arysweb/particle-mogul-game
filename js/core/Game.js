@@ -32,15 +32,33 @@ class Game {
 
         this.setupCanvas();
         this.initializeGrid();
-        this.loadGame();
-        this.setupEventListeners();
-        this.startAutoDrop();
-        this.startExtractorUpdates();
-        this.startResearchUpdates();
-        this.startAutosave();
-        this.saveManager.startSession();
-        this.refreshUIFromState();
-        this.animate();
+        
+        // Fetch Dynamic Research Items
+        this.fetchResearchDefinitions().then(() => {
+            this.loadGame();
+            this.initResearchEffects(); // Activate passive/timed effects from completed research
+            this.setupEventListeners();
+            this.startAutoDrop();
+            this.startExtractorUpdates();
+            this.startResearchUpdates();
+            this.startAutosave();
+            this.saveManager.startSession();
+            this.refreshUIFromState();
+            this.animate();
+        });
+    }
+
+    async fetchResearchDefinitions() {
+        try {
+            const resp = await fetch('api/get_research_definitions.php');
+            if (resp.ok) {
+                this.researchDefinitions = await resp.json();
+                console.log("Research definitions loaded from database.");
+            }
+        } catch (e) {
+            console.warn("Failed to fetch research from DB, using fallback.", e);
+            this.researchDefinitions = GameData.createResearchDefinitions();
+        }
     }
 
     getParticleCount(type) {

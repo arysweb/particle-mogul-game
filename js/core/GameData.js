@@ -92,8 +92,8 @@ class GameData {
                 name: 'Trader',
                 description: 'Auto-sells particles.',
                 gridPosition: {
-                    col: 4,
-                    row: 4
+                    x: 0,
+                    y: 0
                 },
                 cost: {
                     coins: 100,
@@ -112,8 +112,8 @@ class GameData {
                 description: 'Boosts extractor output by 5%.',
                 image: 'https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/extractor.png',
                 gridPosition: {
-                    col: 5,
-                    row: 4
+                    x: 2,
+                    y: 0
                 },
                 cost: {
                     coins: 250,
@@ -126,6 +126,28 @@ class GameData {
                 effect: {
                     type: 'extractor_output_multiplier',
                     value: 1.05
+                }
+            },
+            {
+                id: 'storage-boost-1',
+                name: 'Storage',
+                description: 'Increases sell capacity by +50.',
+                image: 'https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/sell-cap.png',
+                gridPosition: {
+                    x: -2,
+                    y: 0
+                },
+                cost: {
+                    coins: 500,
+                    particles: {
+                        iron: 25,
+                        copper: 10
+                    }
+                },
+                durationMs: 12000,
+                effect: {
+                    type: 'sell_cap_boost',
+                    value: 50
                 }
             }
         ];

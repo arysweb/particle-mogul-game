@@ -107,6 +107,9 @@ Object.assign(Game.prototype, {
 
         this.researchState.activeResearchId = null;
         this.researchState.activeResearchEndsAt = null;
+        
+        this.initResearchEffects(); // Refresh all active effects (including the one just completed)
+        
         this.startAutoDrop();
         this.updateExtractorStats();
         this.ui.updateTraderCard();

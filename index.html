@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Particle Mogul - Home</title>
+    <link rel="icon" type="image/png" href="https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/particles/sand.png">
     <link rel="stylesheet" href="assets/css/global.css">
     <link rel="stylesheet" href="assets/css/home.css">
 </head>
@@ -99,23 +100,86 @@
             window.location.href = 'game.html';
         });
 
-        function checkForSave() {
+        const obfuscationSalt = 'particle_mogul_2026';
+
+        function deobfuscate(input) {
             try {
-                // Auto-fill existing player name if they return
+                const decoded = atob(input);
+                let transformed = '';
+                for (let i = 0; i < decoded.length; i++) {
+                    const saltCode = obfuscationSalt.charCodeAt(i % obfuscationSalt.length);
+                    transformed += String.fromCharCode(decoded.charCodeAt(i) ^ saltCode);
+                }
+                return transformed;
+            } catch (e) {
+                return input; // Fallback to raw if not obfuscated
+            }
+        }
+
+        function parseSaveData(raw) {
+            if (!raw) return null;
+            try {
+                // 1. Try to parse as raw JSON first (cloud saves)
+                return JSON.parse(raw);
+            } catch (e) {
+                try {
+                    // 2. If that fails, try to deobfuscate (local saves)
+                    const deobfuscated = deobfuscate(raw);
+                    const envelope = JSON.parse(deobfuscated);
+                    if (envelope && envelope.payload) {
+                        return JSON.parse(envelope.payload);
+                    }
+                    return envelope;
+                } catch (err) {
+                    console.error('Failed to parse save data:', err);
+                    return null;
+                }
+            }
+        }
+
+        async function checkForSave() {
+            try {
                 const existingName = localStorage.getItem('particle_mogul_name');
+                const playerUid = localStorage.getItem('particle_mogul_uid');
+                
                 if (existingName && existingName !== 'Anonymous') {
                     const nameInput = document.getElementById('playerName');
                     if (nameInput) nameInput.value = existingName;
                 }
 
-                const saveData = localStorage.getItem(storageKey);
-                if (saveData) {
+                const rawData = localStorage.getItem(storageKey);
+                const saveData = parseSaveData(rawData);
+                
+                if (!saveData && playerUid) {
+                    console.log('Local save missing or invalid, checking cloud...');
+                    await syncSaveFromDB(playerUid);
+                } else if (saveData) {
                     continueButton.style.display = 'block';
                     noSaveMessage.style.display = 'none';
                 }
             } catch (error) {
-                console.log('Could not check for save data');
+                console.log('Could not check for save data', error);
             }
+        }
+
+        async function syncSaveFromDB(playerUid) {
+            try {
+                const response = await fetch(`api/get_save.php?player_uid=${playerUid}`);
+                const data = await response.json();
+                
+                if (data.success && data.save_data) {
+                    console.log('Cloud save found, syncing to local storage...');
+                    localStorage.setItem(storageKey, typeof data.save_data === 'string' ? data.save_data : JSON.stringify(data.save_data));
+                    
+                    // Show the continue button
+                    if (continueButton) continueButton.style.display = 'block';
+                    if (noSaveMessage) noSaveMessage.style.display = 'none';
+                    return true;
+                }
+            } catch (err) {
+                console.warn('Failed to sync from cloud:', err);
+            }
+            return false;
         }
 
         // Simple falling particles system
@@ -332,22 +396,31 @@
         const modal = document.getElementById('saveModal');
         const closeModalBtn = document.getElementById('closeModal');
 
-        function showSaveModal() {
+        async function showSaveModal() {
             console.log('showSaveModal called');
             try {
-                const saveData = localStorage.getItem(storageKey);
-                console.log('saveData:', saveData);
+                const playerUid = localStorage.getItem('particle_mogul_uid');
+                let rawData = localStorage.getItem(storageKey);
+                let saveData = parseSaveData(rawData);
+                
+                // One last try at cloud sync if we have a UID and no local save
+                if (!saveData && playerUid) {
+                    await syncSaveFromDB(playerUid);
+                    rawData = localStorage.getItem(storageKey);
+                    saveData = parseSaveData(rawData);
+                }
                 
                 const saveGameCard = document.getElementById('saveGameCard');
                 const noSaveMessageModal = document.getElementById('noSaveMessageModal');
 
                 if (saveData) {
-                    const save = JSON.parse(saveData);
+                    const save = saveData; // Already parsed by helper
                     
-                    // Populate the save date display
+                    // Show save date (priority to cloud timestamp if we just synced)
                     const saveDateDisplay = document.getElementById('saveDateDisplay');
                     if (saveDateDisplay) {
-                        saveDateDisplay.textContent = save.date || new Date().toLocaleDateString();
+                        const dateStr = save.updatedAt || save.savedAt || new Date().toLocaleDateString();
+                        saveDateDisplay.textContent = typeof dateStr === 'number' ? new Date(dateStr).toLocaleString() : dateStr;
                     }
                     
                     if (saveGameCard) saveGameCard.style.display = 'block';
@@ -357,7 +430,6 @@
                     if (noSaveMessageModal) noSaveMessageModal.style.display = 'block';
                 }
                 
-                console.log('Setting modal display to block');
                 modal.style.display = 'block';
             } catch (error) {
                 console.log('Could not load save data:', error);

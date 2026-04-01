@@ -42,9 +42,10 @@
     flex: 1;
     min-height: 0;
     width: 100%;
-    overflow: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    overflow: hidden; /* Use dragging instead of scrollbars */
+    background: rgba(18, 18, 18, 0.45);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .research-grid-viewport::-webkit-scrollbar {
@@ -52,23 +53,41 @@
 }
 
 .research-grid-board {
-    --research-board-size: 936px;
-    position: relative;
+    --research-board-size: 8000px;
+    --research-cell-size: 150px;
+    position: absolute; /* Changed to absolute for easier centering logic */
+    top: 50%;
+    left: 50%;
     width: var(--research-board-size);
     height: var(--research-board-size);
-    margin: 0 auto;
-    transform: scale(var(--research-grid-zoom, 1));
+    margin-top: calc(var(--research-board-size) / -2);
+    margin-left: calc(var(--research-board-size) / -2);
+    transform: translate(var(--research-pan-x, 0), var(--research-pan-y, 0)) scale(var(--research-grid-zoom, 1));
     transform-origin: center center;
-    transition: transform 0.12s ease;
+    background-image: 
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 
+        var(--research-cell-size) var(--research-cell-size), 
+        var(--research-cell-size) var(--research-cell-size),
+        calc(var(--research-cell-size) / 5) calc(var(--research-cell-size) / 5),
+        calc(var(--research-cell-size) / 5) calc(var(--research-cell-size) / 5);
+    background-position: center center;
+    cursor: grab;
+    transition: transform 0.05s linear;
+}
+
+.research-grid-board:active {
+    cursor: grabbing;
 }
 
 .research-grid-helper,
 .research-grid {
     position: absolute;
     inset: 0;
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(8, 1fr);
+    display: block; /* Removed grid */
 }
 
 .research-grid-helper {
@@ -76,44 +95,35 @@
     z-index: 0;
 }
 
-.research-grid-helper-cell {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 8px;
-    box-sizing: border-box;
-}
-
 .research-grid {
-    grid-auto-flow: row dense;
-    align-content: start;
-    justify-items: stretch;
-    gap: 8px;
     box-sizing: border-box;
-    min-width: 0;
-    min-height: 0;
-    padding: 12px;
     z-index: 1;
 }
 
 .research-card {
+    position: absolute; /* Set absolute for coordinate placement */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0;
-    min-height: 64px;
-    width: 96px;
-    max-width: 96px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    position: relative;
+    width: calc(var(--research-cell-size) - 8px);
+    height: calc(var(--research-cell-size) - 8px);
+    padding: 12px;
+    background: rgba(45, 45, 45, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    justify-self: center;
-    align-self: center;
+    transform: translate(-50%, -50%); /* Center on its coordinate */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+}
+
+.research-card:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(55, 55, 55, 1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 
 .research-card-content {
@@ -159,26 +169,30 @@
 }
 
 .research-card-icon {
-    width: 56px;
-    height: 56px;
+    width: 64px;
+    height: 64px;
     object-fit: contain;
 }
 
 .research-card.is-primary .research-card-icon {
-    width: 56px;
-    height: 56px;
+    width: 80px;
+    height: 80px;
 }
 
 .research-card-title {
-    font: bold 11px 'Courier New', monospace;
+    font: bold 14px 'Courier New', monospace;
     color: #ffffff;
     text-align: center;
-    line-height: 1;
+    line-height: 1.2;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    margin-bottom: 4px;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .research-card.is-primary .research-card-title {
-    font-size: 11px;
+    font-size: 16px;
+    margin-bottom: 6px;
 }
 
 .research-empty-state {
@@ -195,67 +209,100 @@
 .research-tooltip {
     position: absolute;
     display: none;
-    min-width: 320px;
-    max-width: 420px;
-    padding: 14px 16px;
-    background: rgba(72, 72, 72, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    border-radius: 10px;
+    min-width: 280px;
+    max-width: 400px;
+    padding: 20px;
+    background: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
     pointer-events: none;
-    z-index: 5;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    z-index: 50;
+    box-shadow: 
+        0 15px 35px rgba(0, 0, 0, 0.4),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    animation: tooltip-in 0.18s cubic-bezier(0.2, 0, 0, 1.2) forwards;
+}
+
+@keyframes tooltip-in {
+    from { opacity: 0; transform: scale(0.96) translate(-5px, -5px); }
+    to { opacity: 1; transform: scale(1) translate(0, 0); }
 }
 
 .research-tooltip-title {
-    font: bold 24px 'Courier New', monospace;
+    font: bold 22px 'Courier New', monospace;
     color: #fff;
-    margin-bottom: 6px;
-}
-
-.research-tooltip-copy,
-.research-tooltip-cost,
-.research-tooltip-time {
-    font: 16px 'Courier New', monospace;
-    color: #f0f0f0;
-    line-height: 1.5;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    letter-spacing: 0.5px;
 }
 
 .research-tooltip-copy {
-    margin-bottom: 8px;
+    font: 14px 'Courier New', monospace;
+    color: #cbd5e0;
+    line-height: 1.6;
+    margin-bottom: 18px;
 }
 
 .research-tooltip-meta-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-direction: column;
+    gap: 14px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.research-tooltip-cost {
-    margin-top: 0;
+.research-tooltip-meta-header {
+    font: bold 12px 'Courier New', monospace;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: -4px;
 }
 
 .research-cost-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
 }
 
 .research-cost-item {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 0;
-    font: 16px 'Courier New', monospace;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.research-cost-item span {
+    font: bold 14px 'Courier New', monospace;
+    color: #edf2f7;
+}
+
+.research-tooltip-time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: italic 13px 'Courier New', monospace;
+    color: rgba(255, 215, 0, 0.85);
+}
+
+.research-tooltip-time::before {
+    content: '⏱';
 }
 
 .research-cost-coin-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     object-fit: contain;
 }
 
 .research-cost-particle-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
 }
