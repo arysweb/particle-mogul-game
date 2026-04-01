@@ -180,6 +180,16 @@ Object.assign(UI.prototype, {
         const sliderValue = parseInt(document.querySelector('.slider-value').textContent);
         const leftType = this.leftSelectedParticle.type;
         const rightType = this.rightSelectedParticle.type;
+        const rate = this.getRequiredAmount();
+
+        // Track the event in the database
+        this.game.saveManager.trackEvent('market_trade', {
+            from_type: leftType,
+            to_type: rightType,
+            from_amount: sliderValue * rate,
+            to_amount: sliderValue,
+            rate: rate
+        });
 
         this.game.tradeParticles(leftType, rightType, sliderValue);
     },

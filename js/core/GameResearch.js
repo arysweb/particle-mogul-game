@@ -111,6 +111,9 @@ Object.assign(Game.prototype, {
         this.updateExtractorStats();
         this.ui.updateTraderCard();
         this.ui.updateResearchDisplayIfOpen();
+        
+        // Immediate sync to database for the new research record
+        this.saveGame({ showToast: true });
     },
 
     updateResearchProgress() {

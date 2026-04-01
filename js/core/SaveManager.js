@@ -3,6 +3,7 @@ class SaveManager {
         this.storageKey = storageKey;
         this.version = 1;
         this.obfuscationSalt = 'particle_mogul_2026';
+        this.sessionId = null;
     }
 
     createSaveData(game) {
@@ -98,8 +99,55 @@ class SaveManager {
 
         // Sync to Database in background
         this.syncToDatabase(payload);
+        
+        // Push session heartbeat
+        this.updateSession(game);
 
         return true;
+    }
+
+    trackEvent(eventType, eventData) {
+        let uid = localStorage.getItem('particle_mogul_uid');
+        if (!uid) return;
+
+        fetch('api/event.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                player_uid: uid,
+                event_type: eventType,
+                event_data: eventData
+            })
+        }).catch(err => console.warn("Event tracking failed:", err));
+    }
+
+    startSession() {
+        let uid = localStorage.getItem('particle_mogul_uid');
+        if (!uid) return;
+
+        fetch('api/event.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                player_uid: uid,
+                event_type: 'session_start'
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.session_id) this.sessionId = data.session_id;
+        });
+    }
+
+    updateSession(game) {
+        if (!this.sessionId) return;
+        
+        let uid = localStorage.getItem('particle_mogul_uid');
+        this.trackEvent('session_update', {
+            session_id: this.sessionId,
+            particles_dropped: game.totalParticlesDropped,
+            money_earned: game.state.walletBalance
+        });
     }
 
     syncToDatabase(payload) {

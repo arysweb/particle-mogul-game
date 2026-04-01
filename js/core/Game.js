@@ -38,6 +38,7 @@ class Game {
         this.startExtractorUpdates();
         this.startResearchUpdates();
         this.startAutosave();
+        this.saveManager.startSession();
         this.refreshUIFromState();
         this.animate();
     }

@@ -56,10 +56,10 @@ try {
 
     // 3. Upsert Player Statistics
     // Extract stats from saveData
-    $totalParticles = $saveData['totalParticlesDropped'] ?? 0;
-    $walletBalance  = $saveData['state']['walletBalance'] ?? 0;
-    $extractorLvl   = $saveData['extractorLevel'] ?? 1;
-    $goldDrops      = $saveData['state']['goldDrops'] ?? 0;
+    $totalParticles = (int)($saveData['totalParticlesDropped'] ?? 0);
+    $walletBalance  = (int)($saveData['state']['walletBalance'] ?? 0);
+    $extractorLvl   = (int)($saveData['extractorLevel'] ?? 1);
+    $goldDrops      = (int)($saveData['state']['goldDrops'] ?? 0);
     $rareUnlocked   = ($saveData['state']['rareParticlesUnlocked'] ?? false) ? 1 : 0;
 
     $stmt = $pdo->prepare("SELECT stat_id FROM player_statistics WHERE player_id = ?");
@@ -70,7 +70,6 @@ try {
         $stmt = $pdo->prepare("INSERT INTO player_statistics (player_id, total_particles_dropped, highest_wallet_balance, extractor_level_reached, rare_particles_unlocked, total_gold_drops) VALUES (?, ?, ?, ?, ?, ?)");
         $stmt->execute([$playerId, $totalParticles, $walletBalance, $extractorLvl, $rareUnlocked, $goldDrops]);
     } else {
-        // Update keeping the highest values where it makes sense
         $stmt = $pdo->prepare("UPDATE player_statistics SET 
             total_particles_dropped = GREATEST(total_particles_dropped, ?),
             highest_wallet_balance = GREATEST(highest_wallet_balance, ?),
@@ -80,6 +79,37 @@ try {
             updated_at = CURRENT_TIMESTAMP
             WHERE player_id = ?");
         $stmt->execute([$totalParticles, $walletBalance, $extractorLvl, $rareUnlocked, $goldDrops, $playerId]);
+    }
+
+    // 4. Sync Leaderboard Entries
+    $scores = [
+        'total_money' => $walletBalance,
+        'total_particles' => $totalParticles,
+        'highest_balance' => $walletBalance // simplified for now
+    ];
+
+    foreach ($scores as $type => $value) {
+        $stmt = $pdo->prepare("SELECT leaderboard_id FROM leaderboard WHERE player_id = ? AND score_type = ?");
+        $stmt->execute([$playerId, $type]);
+        $lb = $stmt->fetch();
+        if (!$lb) {
+            $stmt = $pdo->prepare("INSERT INTO leaderboard (player_id, score_type, score_value) VALUES (?, ?, ?)");
+            $stmt->execute([$playerId, $type, $value]);
+        } else {
+            $stmt = $pdo->prepare("UPDATE leaderboard SET score_value = GREATEST(score_value, ?), achieved_at = CURRENT_TIMESTAMP WHERE leaderboard_id = ?");
+            $stmt->execute([$value, $lb['leaderboard_id']]);
+        }
+    }
+
+    // 5. Sync Research Progress
+    $completedIds = $saveData['researchState']['completedResearchIds'] ?? [];
+    foreach ($completedIds as $rid) {
+        $stmt = $pdo->prepare("SELECT progress_id FROM research_progress WHERE player_id = ? AND research_id = ?");
+        $stmt->execute([$playerId, $rid]);
+        if (!$stmt->fetch()) {
+            $stmt = $pdo->prepare("INSERT INTO research_progress (player_id, research_id, research_name) VALUES (?, ?, ?)");
+            $stmt->execute([$playerId, $rid, "Research #".$rid]);
+        }
     }
 
     $pdo->commit();

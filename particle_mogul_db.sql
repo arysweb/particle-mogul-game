@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 01, 2026 at 08:11 PM
+-- Generation Time: Apr 01, 2026 at 09:56 PM
 -- Server version: 8.4.7-0ubuntu0.25.04.2
 -- PHP Version: 8.4.5
 
@@ -36,6 +36,13 @@ CREATE TABLE `game_saves` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `game_saves`
+--
+
+INSERT INTO `game_saves` (`save_id`, `player_id`, `save_slot`, `save_data`, `created_at`, `updated_at`) VALUES
+(243, 2, 1, '{\"state\": {\"sellCap\": 10, \"goldDrops\": 1, \"inventory\": {\"gold\": 1, \"iron\": 8, \"ruby\": 0, \"sand\": 603, \"copper\": 4, \"silver\": 1, \"emerald\": 0}, \"walletBalance\": 615, \"rareParticlesUnlocked\": false}, \"savedAt\": 1775080593090, \"traderState\": {\"level\": 1, \"enabled\": true, \"intervalMs\": 4000, \"lastSellAt\": 1775080591409, \"sellAmount\": 15, \"upgradeCost\": 250, \"selectedParticle\": \"sand\"}, \"researchState\": {\"activeResearchId\": null, \"activeResearchEndsAt\": null, \"completedResearchIds\": [\"unlock-trader\"], \"researchSpeedMultiplier\": 1}, \"extractorLevel\": 1, \"currentDropInterval\": 1000, \"extractorUpgradeCost\": 500, \"totalParticlesDropped\": 1432}', '2026-04-01 21:43:15', '2026-04-01 21:56:33');
+
 -- --------------------------------------------------------
 
 --
@@ -49,6 +56,15 @@ CREATE TABLE `leaderboard` (
   `score_value` bigint DEFAULT NULL,
   `achieved_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `leaderboard`
+--
+
+INSERT INTO `leaderboard` (`leaderboard_id`, `player_id`, `score_type`, `score_value`, `achieved_at`) VALUES
+(1, 2, 'total_money', 615, '2026-04-01 21:56:34'),
+(2, 2, 'total_particles', 1432, '2026-04-01 21:56:34'),
+(3, 2, 'highest_balance', 615, '2026-04-01 21:56:34');
 
 -- --------------------------------------------------------
 
@@ -70,20 +86,6 @@ CREATE TABLE `market_trades` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `particle_inventory_history`
---
-
-CREATE TABLE `particle_inventory_history` (
-  `history_id` int NOT NULL,
-  `player_id` int DEFAULT NULL,
-  `particle_type` enum('sand','iron','copper','silver','gold','emerald','ruby') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `count` int DEFAULT '0',
-  `recorded_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `players`
 --
 
@@ -96,6 +98,13 @@ CREATE TABLE `players` (
   `total_playtime_seconds` int DEFAULT '0',
   `is_active` tinyint(1) DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `players`
+--
+
+INSERT INTO `players` (`player_id`, `player_uid`, `player_name`, `created_at`, `last_login_at`, `total_playtime_seconds`, `is_active`) VALUES
+(2, 'player_3001ab05', 'Sebas', '2026-04-01 21:43:15', '2026-04-01 21:56:33', 0, 1);
 
 -- --------------------------------------------------------
 
@@ -121,6 +130,13 @@ CREATE TABLE `player_statistics` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `player_statistics`
+--
+
+INSERT INTO `player_statistics` (`stat_id`, `player_id`, `total_particles_dropped`, `total_money_earned`, `total_money_spent`, `highest_wallet_balance`, `total_research_completed`, `extractor_level_reached`, `trader_level_reached`, `rare_particles_unlocked`, `total_gold_drops`, `total_play_sessions`, `longest_session_seconds`, `created_at`, `updated_at`) VALUES
+(1, 2, 1432, 0, 0, 615, 0, 1, 1, 0, 1, 0, 0, '2026-04-01 21:43:15', '2026-04-01 21:56:34');
+
 -- --------------------------------------------------------
 
 --
@@ -141,6 +157,14 @@ CREATE TABLE `play_sessions` (
   `trader_upgrades` int DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+--
+-- Dumping data for table `play_sessions`
+--
+
+INSERT INTO `play_sessions` (`session_id`, `player_id`, `session_start`, `session_end`, `duration_seconds`, `particles_dropped`, `money_earned`, `money_spent`, `research_completed`, `extractor_upgrades`, `trader_upgrades`) VALUES
+(1, 2, '2026-04-01 21:53:50', '2026-04-01 21:56:33', 163, 1432, 615, 0, 0, 0, 0),
+(2, 2, '2026-04-01 21:56:33', NULL, NULL, 0, 0, 0, 0, 0, 0);
+
 -- --------------------------------------------------------
 
 --
@@ -155,6 +179,13 @@ CREATE TABLE `research_progress` (
   `completed_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `completion_time_ms` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `research_progress`
+--
+
+INSERT INTO `research_progress` (`progress_id`, `player_id`, `research_id`, `research_name`, `completed_at`, `completion_time_ms`) VALUES
+(1, 2, 'unlock-trader', 'Research #unlock-trader', '2026-04-01 21:51:47', NULL);
 
 --
 -- Indexes for dumped tables
@@ -181,13 +212,6 @@ ALTER TABLE `leaderboard`
 ALTER TABLE `market_trades`
   ADD PRIMARY KEY (`trade_id`),
   ADD KEY `player_id` (`player_id`);
-
---
--- Indexes for table `particle_inventory_history`
---
-ALTER TABLE `particle_inventory_history`
-  ADD PRIMARY KEY (`history_id`),
-  ADD KEY `idx_player_particle_time` (`player_id`,`particle_type`,`recorded_at`);
 
 --
 -- Indexes for table `players`
@@ -226,13 +250,13 @@ ALTER TABLE `research_progress`
 -- AUTO_INCREMENT for table `game_saves`
 --
 ALTER TABLE `game_saves`
-  MODIFY `save_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=243;
+  MODIFY `save_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=244;
 
 --
 -- AUTO_INCREMENT for table `leaderboard`
 --
 ALTER TABLE `leaderboard`
-  MODIFY `leaderboard_id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `leaderboard_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `market_trades`
@@ -241,34 +265,28 @@ ALTER TABLE `market_trades`
   MODIFY `trade_id` int NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `particle_inventory_history`
---
-ALTER TABLE `particle_inventory_history`
-  MODIFY `history_id` int NOT NULL AUTO_INCREMENT;
-
---
 -- AUTO_INCREMENT for table `players`
 --
 ALTER TABLE `players`
-  MODIFY `player_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `player_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `player_statistics`
 --
 ALTER TABLE `player_statistics`
-  MODIFY `stat_id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `stat_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `play_sessions`
 --
 ALTER TABLE `play_sessions`
-  MODIFY `session_id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `session_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `research_progress`
 --
 ALTER TABLE `research_progress`
-  MODIFY `progress_id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `progress_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables
@@ -291,12 +309,6 @@ ALTER TABLE `leaderboard`
 --
 ALTER TABLE `market_trades`
   ADD CONSTRAINT `market_trades_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `players` (`player_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `particle_inventory_history`
---
-ALTER TABLE `particle_inventory_history`
-  ADD CONSTRAINT `particle_inventory_history_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `players` (`player_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `player_statistics`
