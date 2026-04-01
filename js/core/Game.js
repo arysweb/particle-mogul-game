@@ -4,7 +4,7 @@ class Game {
         this.ctx = this.canvas.getContext('2d');
         this.saveStorageKey = 'particle_mogul_save';
         this.saveManager = new SaveManager(this.saveStorageKey);
-        this.autosaveIntervalMs = 60000;
+        this.autosaveIntervalMs = 10000; // Auto-save natively every 10s
         this.autosaveInterval = null;
         this.particles = [];
         this.sandGrid = [];

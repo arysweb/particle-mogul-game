@@ -95,7 +95,60 @@ class SaveManager {
         };
         const encoded = this.obfuscate(JSON.stringify(envelope));
         localStorage.setItem(this.storageKey, encoded);
+
+        // Sync to Database in background
+        this.syncToDatabase(payload);
+
         return true;
+    }
+
+    syncToDatabase(payload) {
+        // Ensure player UID exists even if they skipped index.html logic
+        let uid = localStorage.getItem('particle_mogul_uid');
+        let name = localStorage.getItem('particle_mogul_name') || 'Anonymous';
+        
+        if (!uid) {
+            uid = 'anon_' + Math.random().toString(16).substring(2, 10);
+            localStorage.setItem('particle_mogul_uid', uid);
+            localStorage.setItem('particle_mogul_name', name);
+        }
+
+        const dataToSend = {
+            player_uid: uid,
+            player_name: name,
+            save_data: payload
+        };
+
+        fetch('api/save.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dataToSend)
+        })
+        .then(async res => {
+            const body = await res.text();
+            if (!res.ok) {
+                console.error("Server returned error response:", body);
+                throw new Error(`HTTP error! Status: ${res.status}`);
+            }
+            return body;
+        })
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                if (data.success) {
+                    console.log("Database sync successful for player:", uid);
+                } else {
+                    console.error("Database sync returned error:", data.error);
+                }
+            } catch (e) {
+                console.error("Database sync returned invalid JSON:", text);
+            }
+        })
+        .catch(err => {
+            console.error("Database sync failed completely:", err);
+        });
     }
 
     load(game) {

@@ -82,6 +82,16 @@
 
         // New Game functionality
         newGameButton.addEventListener('click', () => {
+            const playerNameInput = document.getElementById('playerName').value.trim();
+            const playerName = playerNameInput || 'Anonymous';
+            const prefix = playerNameInput ? 'player_' : 'anon_';
+            const randomHex = Math.random().toString(16).substring(2, 10);
+            const playerUid = prefix + randomHex;
+
+            // Store player identity
+            localStorage.setItem('particle_mogul_uid', playerUid);
+            localStorage.setItem('particle_mogul_name', playerName);
+
             const saveData = localStorage.getItem(storageKey);
             if (saveData) {
                 clearSaveData();
@@ -91,6 +101,13 @@
 
         function checkForSave() {
             try {
+                // Auto-fill existing player name if they return
+                const existingName = localStorage.getItem('particle_mogul_name');
+                if (existingName && existingName !== 'Anonymous') {
+                    const nameInput = document.getElementById('playerName');
+                    if (nameInput) nameInput.value = existingName;
+                }
+
                 const saveData = localStorage.getItem(storageKey);
                 if (saveData) {
                     continueButton.style.display = 'block';
