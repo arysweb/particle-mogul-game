@@ -62,44 +62,17 @@ class Particle {
         }
     }
 
-    update(gravity, maxVelocity, canvasWidth) {
-        if (this.settled) return;
-
-        // Apply gravity
-        this.vy += gravity;
-        this.vy = Math.min(this.vy, maxVelocity);
-        
-        // Update position
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // Check boundaries
-        if (this.x < 0 || this.x > canvasWidth) {
-            this.vx *= -0.5;
-            this.x = Math.max(0, Math.min(canvasWidth, this.x));
-        }
-    }
 
     draw(ctx, isSettled) {
         ctx.fillStyle = this.color;
         
-        if (isSettled) {
-            // Draw as a square when settled (grid-aligned)
-            ctx.fillRect(this.x, this.y, this.particleSize, this.particleSize);
-            
-            // Add subtle border for depth
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(this.x, this.y, this.particleSize, this.particleSize);
-        } else {
-            // Draw as a square when falling (same size as settled)
-            ctx.fillRect(this.x - this.particleSize/2, this.y - this.particleSize/2, this.particleSize, this.particleSize);
-            
-            // Add subtle border for depth
-            ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(this.x - this.particleSize/2, this.y - this.particleSize/2, this.particleSize, this.particleSize);
-        }
+        // Always draw correctly from top-left coordinates whether falling or settled
+        ctx.fillRect(this.x, this.y, this.particleSize, this.particleSize);
+        
+        // Add subtle border for depth
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(this.x, this.y, this.particleSize, this.particleSize);
     }
 
     settle(gridX, gridY) {

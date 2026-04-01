@@ -84,13 +84,9 @@
         newGameButton.addEventListener('click', () => {
             const saveData = localStorage.getItem(storageKey);
             if (saveData) {
-                if (confirm('Starting a new game will overwrite your existing save. Are you sure?')) {
-                    clearSaveData();
-                    window.location.href = 'game.html';
-                }
-            } else {
-                window.location.href = 'game.html';
+                clearSaveData();
             }
+            window.location.href = 'game.html';
         });
 
         function checkForSave() {

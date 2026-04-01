@@ -25,8 +25,9 @@ class Physics {
                 nextX = Math.max(0, Math.min(canvasWidth - this.particleSize, nextX));
             }
 
-            // 2. Identify current and upcoming grid coordinates 
-            let currentGridX = Math.floor(particle.x / this.particleSize);
+            // 2. Identify current and upcoming grid coordinates using logical visual center
+            let particleCenterX = particle.x + (this.particleSize / 2);
+            let currentGridX = Math.floor(particleCenterX / this.particleSize);
             
             // Safety grid clamp laterally
             if (currentGridX < 0) currentGridX = 0;
@@ -49,6 +50,13 @@ class Physics {
                 let finalX = Math.floor(particle.x / this.particleSize);
                 let finalY = Math.floor(particle.y / this.particleSize);
                 
+                // Prevent over-writing if multiple particles hit exactly the same floor slot
+                while(finalY >= 0 && sandGrid[finalY] && sandGrid[finalY][finalX]) {
+                    finalY--;
+                }
+                if (finalY < 0) finalY = 0;
+                
+                particle.y = finalY * this.particleSize;
                 particle.settle(finalX, finalY);
                 if (finalY >= 0 && finalY < sandGrid.length && finalX >= 0 && finalX < sandGrid[0].length) {
                     sandGrid[finalY][finalX] = particle;
@@ -69,51 +77,63 @@ class Physics {
                 particle.x = nextX;
                 particle.y = nextY;
             } else {
-                // 5. Blocked beneath! Try sliding down diagonally if possible.
-                let blockedLeft = true;
-                let blockedRight = true;
-
-                // Only check laterally if they exist within grid boundaries
-                if (currentGridX > 0) {
-                    blockedLeft = sandGrid[currentGridY][currentGridX - 1] || sandGrid[nextGridY][currentGridX - 1];
-                }
+                // 5. Blocked beneath! Stop and settle immediately so the Cellular Automata pass can avalanche it naturally.
+                let safeGridY = nextGridY - 1;
                 
-                if (currentGridX < sandGrid[0].length - 1) {
-                    blockedRight = sandGrid[currentGridY][currentGridX + 1] || sandGrid[nextGridY][currentGridX + 1];
+                // Bullet-thru-paper safety loop: ensure we are fully flushed to the absolute top of the pile 
+                while(safeGridY >= 0 && sandGrid[safeGridY] && sandGrid[safeGridY][currentGridX]) {
+                    safeGridY--;
                 }
+                if (safeGridY < 0) safeGridY = 0; // Don't overflow out the roof
 
-                // If both are free, pick a random side to tumble down like real sand
-                if (!blockedLeft && !blockedRight) {
-                    if (Math.random() > 0.5) blockedLeft = true;
-                    else blockedRight = true;
+                particle.vy = 0;
+                particle.vx = 0;
+                particle.x = currentGridX * this.particleSize;
+                particle.y = safeGridY * this.particleSize;
+                
+                particle.settle(currentGridX, safeGridY);
+                if (safeGridY >= 0 && safeGridY < sandGrid.length) {
+                    sandGrid[safeGridY][currentGridX] = particle;
                 }
+            }
+        }
 
-                if (!blockedLeft) {
-                    particle.y = nextY; // Still falling
-                    particle.x = (currentGridX - 1) * this.particleSize; // Snap left securely
-                    particle.vx = (Math.random() - 0.5) * 2; // Slight natural lateral momentum
-                } else if (!blockedRight) {
-                    particle.y = nextY;
-                    particle.x = (currentGridX + 1) * this.particleSize; // Snap right securely 
-                    particle.vx = (Math.random() - 0.5) * 2;
-                } else {
-                    // Completely blocked! Stop and settle exactly right here.
-                    let safeGridY = nextGridY - 1;
-                    
-                    // Bullet-thru-paper safety loop: ensure we are fully flushed to the absolute top of the pile 
-                    while(safeGridY >= 0 && sandGrid[safeGridY][currentGridX]) {
-                        safeGridY--;
-                    }
-                    if (safeGridY < 0) safeGridY = 0; // Don't overflow out the roof
+        // 6. Cellular Automata Avalanche Pass for perfectly natural mounds
+        // Traverse the grid from bottom up
+        for (let y = sandGrid.length - 2; y >= 0; y--) {
+            // Randomize X traversal direction to prevent directional bias in avalanches
+            let startX = 0, endX = sandGrid[0].length, step = 1;
+            if (Math.random() > 0.5) {
+                startX = sandGrid[0].length - 1; endX = -1; step = -1;
+            }
+            
+            for (let x = startX; x !== endX; x += step) {
+                let p = sandGrid[y][x];
+                if (p && p.settled) {
+                    // 1. Check direct bottom first (for holes that opened up beneath)
+                    if (sandGrid[y+1][x] === null) {
+                        sandGrid[y+1][x] = p;
+                        sandGrid[y][x] = null;
+                        p.settle(x, y+1);
+                    } else {
+                        // 2. Check diagonals to avalanche down the mound
+                        let leftEmpty = x > 0 && sandGrid[y+1][x-1] === null;
+                        let rightEmpty = x < sandGrid[0].length - 1 && sandGrid[y+1][x+1] === null;
+                        
+                        if (leftEmpty && rightEmpty) {
+                            if (Math.random() > 0.5) leftEmpty = false;
+                            else rightEmpty = false;
+                        }
 
-                    particle.vy = 0;
-                    particle.vx = 0;
-                    particle.x = currentGridX * this.particleSize;
-                    particle.y = safeGridY * this.particleSize;
-                    
-                    particle.settle(currentGridX, safeGridY);
-                    if (safeGridY >= 0 && safeGridY < sandGrid.length) {
-                        sandGrid[safeGridY][currentGridX] = particle;
+                        if (leftEmpty) {
+                            sandGrid[y+1][x-1] = p;
+                            sandGrid[y][x] = null;
+                            p.settle(x-1, y+1);
+                        } else if (rightEmpty) {
+                            sandGrid[y+1][x+1] = p;
+                            sandGrid[y][x] = null;
+                            p.settle(x+1, y+1);
+                        }
                     }
                 }
             }

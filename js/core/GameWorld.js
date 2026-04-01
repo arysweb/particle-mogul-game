@@ -20,6 +20,23 @@ Object.assign(Game.prototype, {
         const rows = Math.ceil(this.canvas.height / this.particleSize);
 
         this.sandGrid = Array(rows).fill().map(() => Array(cols).fill(null));
+
+        // Re-populate grid with existing settled particles if they fit within new bounds
+        if (this.particles && this.particles.length > 0) {
+            this.particles.forEach(p => {
+                if (p.settled) {
+                    const gridX = Math.floor(p.x / this.particleSize);
+                    const gridY = Math.floor(p.y / this.particleSize);
+                    
+                    if (gridY >= 0 && gridY < rows && gridX >= 0 && gridX < cols) {
+                        this.sandGrid[gridY][gridX] = p;
+                    } else {
+                        // Un-settle the particle so physics can push it back into the bounds
+                        p.settled = false;
+                    }
+                }
+            });
+        }
     },
 
     setupEventListeners() {
