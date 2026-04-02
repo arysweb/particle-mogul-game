@@ -53,9 +53,9 @@
 }
 
 .research-grid-board {
-    --research-board-size: 8000px;
+    --research-board-size: 10000px;
     --research-cell-size: 150px;
-    position: absolute; /* Changed to absolute for easier centering logic */
+    position: absolute;
     top: 50%;
     left: 50%;
     width: var(--research-board-size);
@@ -110,20 +110,48 @@
     width: calc(var(--research-cell-size) - 8px);
     height: calc(var(--research-cell-size) - 8px);
     padding: 12px;
-    background: rgba(45, 45, 45, 0.9);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: rgba(35, 35, 35, 0.95);
+    border: 2px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    transform: translate(-50%, -50%); /* Center on its coordinate */
+    transform: translate(-50%, -50%);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s ease;
+    transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    pointer-events: all;
+    backface-visibility: hidden;
 }
 
 .research-card:hover {
-    border-color: rgba(255, 255, 255, 0.4);
-    background: rgba(55, 55, 55, 1);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 215, 0, 0.8);
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
+    transform: translate(-50%, -50%); /* Removed scale */
+    z-index: 100;
+}
+
+.research-card.is-locked {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(30, 30, 30, 0.95);
+    cursor: not-allowed;
+}
+
+.research-card.is-locked .research-card-title {
+    color: #666;
+}
+
+.research-connector-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    width: 10000px;
+    height: 10000px;
+}
+
+.research-line {
+    stroke: #ffffff;
+    stroke-width: 4;
 }
 
 .research-card-content {
@@ -142,9 +170,10 @@
     right: 0;
     bottom: 0;
     height: var(--research-fill, 0%);
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 215, 0, 0.15);
     z-index: 0;
     transition: height 0.25s linear;
+    pointer-events: none;
 }
 
 .research-card > * {
@@ -153,30 +182,39 @@
 }
 
 .research-card.is-completed {
-    border-color: rgba(88, 214, 141, 0.55);
+    border-color: rgba(255, 215, 0, 0.8);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
 }
 
 .research-card.is-completed::before {
-    background: rgba(88, 214, 141, 0.2);
+    background: rgba(255, 215, 0, 0.2);
 }
 
 .research-card.is-active {
-    border-color: rgba(255, 215, 0, 0.55);
+    border-color: #fff;
+    animation: pulse-border 2s infinite;
 }
 
-.research-card.is-disabled {
-    opacity: 0.7;
+@keyframes pulse-border {
+    0% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.2); }
+    50% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.5); }
+    100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.2); }
 }
+
+/* Locked/Disabled states are now fully opaque by design */
 
 .research-card-icon {
-    width: 64px;
-    height: 64px;
+    width: 82px;
+    height: 82px;
     object-fit: contain;
+    transition: filter 0.3s ease;
 }
 
+/* Icons in locked cards now retain their full visual clarity */
+
 .research-card.is-primary .research-card-icon {
-    width: 80px;
-    height: 80px;
+    width: 96px;
+    height: 96px;
 }
 
 .research-card-title {
@@ -209,46 +247,37 @@
 .research-tooltip {
     position: absolute;
     display: none;
-    min-width: 280px;
-    max-width: 400px;
-    padding: 20px;
-    background: rgba(26, 26, 26, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
+    width: 340px;
+    padding: 16px;
+    background: rgba(10, 10, 10, 0.98);
+    backdrop-filter: blur(25px);
+    border-radius: 10px;
     pointer-events: none;
-    z-index: 50;
-    box-shadow: 
-        0 15px 35px rgba(0, 0, 0, 0.4),
-        inset 0 1px 1px rgba(255, 255, 255, 0.1);
-    animation: tooltip-in 0.18s cubic-bezier(0.2, 0, 0, 1.2) forwards;
-}
-
-@keyframes tooltip-in {
-    from { opacity: 0; transform: scale(0.96) translate(-5px, -5px); }
-    to { opacity: 1; transform: scale(1) translate(0, 0); }
+    z-index: 2000;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
 }
 
 .research-tooltip-title {
-    font: bold 22px 'Courier New', monospace;
-    color: #fff;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    letter-spacing: 0.5px;
+    font: bold 16px 'Courier New', monospace;
+    color: #ffd700;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
 }
 
 .research-tooltip-copy {
     font: 14px 'Courier New', monospace;
-    color: #cbd5e0;
-    line-height: 1.6;
-    margin-bottom: 18px;
+    color: #ffffff;
+    line-height: 1.4;
+    margin-bottom: 8px;
 }
 
 .research-tooltip-meta-row {
     display: flex;
-    flex-direction: column;
-    gap: 14px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
     padding: 12px;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 10px;
@@ -264,36 +293,41 @@
 }
 
 .research-cost-list {
-    display: flex;
+    display: inline-flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 15px;
 }
 
 .research-cost-item {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 6px;
+    background: none;
+    border: none;
+    padding: 0;
 }
 
 .research-cost-item span {
     font: bold 14px 'Courier New', monospace;
-    color: #edf2f7;
 }
 
-.research-tooltip-time {
-    display: flex;
+.research-cost-item.is-affordable span {
+    color: #ffffff;
+}
+
+.research-cost-item.is-unaffordable span {
+    color: #ff5555;
+    text-shadow: 0 0 5px rgba(255, 85, 85, 0.5);
+}
+
+.research-tooltip-time-inline {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    font: italic 13px 'Courier New', monospace;
-    color: rgba(255, 215, 0, 0.85);
-}
-
-.research-tooltip-time::before {
-    content: '⏱';
+    gap: 6px;
+    font: bold 13px 'Courier New', monospace;
+    color: #ffffff;
+    white-space: nowrap;
 }
 
 .research-cost-coin-icon {
@@ -305,4 +339,14 @@
 .research-cost-particle-icon {
     width: 20px;
     height: 20px;
+}
+
+.research-status-completed {
+    font: bold 15px 'Courier New', monospace;
+    color: #4ade80; /* Brighter green */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    width: 100%;
+    text-align: center;
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
 }

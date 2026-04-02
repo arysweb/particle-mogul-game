@@ -175,8 +175,9 @@ Object.assign(UI.prototype, {
             return;
         }
 
+        const effectiveAmount = this.game.getEffectiveTraderSellAmount();
         this.traderCardElement.style.display = 'block';
-        this.traderDescriptionElement.innerHTML = `Sell ${traderState.sellAmount} <div class="${iconClass}"></div> every ${nextSellSeconds} sec.`;
+        this.traderDescriptionElement.innerHTML = `Sell ${effectiveAmount} <div class="${iconClass}"></div> every ${nextSellSeconds} sec.`;
         this.traderSelectButton.innerHTML = `Sell: <div class="${iconClass}"></div>`;
         this.traderUpgradeButton.textContent = `UPGRADE (${traderState.upgradeCost})`;
         this.traderToggleLink.textContent = isEnabled ? 'TURN OFF' : 'TURN ON';

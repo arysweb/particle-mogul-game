@@ -81,23 +81,31 @@ Object.assign(UI.prototype, {
     getResearchCostMarkup(cost = {}) {
         const entries = [];
         const particleCosts = cost.particles || {};
+        const walletBalance = this.game.getWalletBalance();
+        
         if (cost.coins) {
+            const canAfford = walletBalance >= cost.coins;
             entries.push(`
-                <div class="research-cost-item">
+                <div class="research-cost-item ${canAfford ? 'is-affordable' : 'is-unaffordable'}">
                     <img src="https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/coin.png" alt="Coins" class="research-cost-icon research-cost-coin-icon">
                     <span>${cost.coins}</span>
                 </div>
             `);
         }
+        
         Object.entries(particleCosts).forEach(([type, amount]) => {
+            if (amount <= 0) return;
+            const currentCount = this.game.getParticleCount(type);
+            const canAfford = currentCount >= amount;
             entries.push(`
-                <div class="research-cost-item">
+                <div class="research-cost-item ${canAfford ? 'is-affordable' : 'is-unaffordable'}">
                     <div class="research-cost-particle-icon ${this.getIconClass(type)}"></div>
                     <span>${amount}</span>
                 </div>
             `);
         });
-        return entries.length ? entries.join('') : '<div class="research-cost-item"><span>Free</span></div>';
+        
+        return entries.join('') || '<div class="research-cost-item"><span>Free</span></div>';
     },
 
     formatDuration(durationMs) {
@@ -108,24 +116,58 @@ Object.assign(UI.prototype, {
     },
 
     showResearchTooltip(research, event) {
-        this.researchTooltipElement.innerHTML = `
-            <div class="research-tooltip-title">${research.name}</div>
-            <div class="research-tooltip-copy">${research.description}</div>
-            <div class="research-tooltip-meta-row">
-                <div class="research-tooltip-meta-header">Resource Cost</div>
-                <div class="research-cost-list">${this.getResearchCostMarkup(research.cost)}</div>
-                <div class="research-tooltip-time">${this.formatDuration(this.game.getAdjustedResearchDuration(research.durationMs))} Estimated Time</div>
-            </div>
-        `;
+        // If locked, show a generic "???" tooltip or a hint
+        const isLocked = research.parent_id && !this.game.isResearchCompleted(research.parent_id);
+        const isCompleted = this.game.isResearchCompleted(research.id);
+        
+        if (isLocked) {
+            const parent = this.game.getResearchById(research.parent_id);
+            this.researchTooltipElement.innerHTML = `
+                <div class="research-tooltip-title">Mystery Research</div>
+                <div class="research-tooltip-copy">Complete <b>${parent ? parent.name : 'prerequisite'}</b> to unlock this technology.</div>
+            `;
+        } else if (isCompleted) {
+            this.researchTooltipElement.innerHTML = `
+                <div class="research-tooltip-title">${research.name}</div>
+                <div class="research-tooltip-copy">${research.description}</div>
+                <div class="research-tooltip-meta-row">
+                    <div class="research-status-completed">COMPLETED</div>
+                </div>
+            `;
+        } else {
+            const timeStr = this.formatDuration(this.game.getAdjustedResearchDuration(research.durationMs));
+            this.researchTooltipElement.innerHTML = `
+                <div class="research-tooltip-title">${research.name}</div>
+                <div class="research-tooltip-copy">${research.description}</div>
+                <div class="research-tooltip-meta-row">
+                    <div class="research-cost-list">${this.getResearchCostMarkup(research.cost)}</div>
+                    <div class="research-tooltip-time-inline"> ${timeStr}</div>
+                </div>
+            `;
+        }
+        
         this.researchTooltipElement.style.display = 'block';
         this.positionResearchTooltip(event.currentTarget);
     },
 
     positionResearchTooltip(targetElement) {
-        const bounds = this.researchModalContent.getBoundingClientRect();
+        const modalBounds = this.researchModalContent.getBoundingClientRect();
         const targetBounds = targetElement.getBoundingClientRect();
-        const tooltipX = targetBounds.right - bounds.left + 2;
-        const tooltipY = targetBounds.top - bounds.top + 4;
+        
+        // Default position: Right of the card (with safety gap to prevent flickering)
+        let tooltipX = targetBounds.right - modalBounds.left + 25;
+        let tooltipY = targetBounds.top - modalBounds.top;
+
+        // Check if it goes off-screen to the right
+        const tooltipWidth = 340; 
+        if (tooltipX + tooltipWidth > modalBounds.width - 20) {
+            // Flip to the left of the card (with safety gap)
+            tooltipX = targetBounds.left - modalBounds.left - tooltipWidth - 25;
+        }
+
+        // Clamp Y to stay within modal
+        tooltipY = Math.max(10, Math.min(modalBounds.height - 150, tooltipY));
+
         this.researchTooltipElement.style.left = `${tooltipX}px`;
         this.researchTooltipElement.style.top = `${tooltipY}px`;
     },
@@ -135,12 +177,13 @@ Object.assign(UI.prototype, {
     },
 
     getResearchGridPlacement(research) {
-        // Space nodes: X and Y are multiplied by cell size
-        // If (x+y) % 2 != 0, it's not a visually "valid" cell in the spaced pattern (though we allow it in data)
         const pos = research.gridPosition || { x: 0, y: 0 };
+        const cellSize = this.cellSize || 150;
         return {
-            left: `calc(50% + ${pos.x * (this.cellSize || 150)}px)`,
-            top: `calc(50% + ${pos.y * (this.cellSize || 150)}px)`
+            x: 5000 + (pos.x * cellSize), // Use absolute center offset (consistent with Admin)
+            y: 5000 + (pos.y * cellSize),
+            left: `calc(50% + ${pos.x * cellSize}px)`,
+            top: `calc(50% + ${pos.y * cellSize}px)`
         };
     },
 
@@ -160,28 +203,69 @@ Object.assign(UI.prototype, {
 
         this.researchEmptyStateElement.style.display = 'none';
         this.researchGridElement.innerHTML = '';
+        
+        // 1. Create SVG layer for connectors (simple white lines)
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute('class', 'research-connector-layer');
+        svg.setAttribute('viewBox', '0 0 10000 10000');
+        svg.setAttribute('width', '10000');
+        svg.setAttribute('height', '10000');
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.pointerEvents = 'none';
+        svg.style.zIndex = '0'; // Behind cards
+        this.researchGridElement.appendChild(svg);
 
-        researches.forEach((research, index) => {
-            const card = document.createElement('div');
+        // 2. Render Cards and draw lines
+        researches.forEach((research) => {
+            const placement = this.getResearchGridPlacement(research);
             const isCompleted = this.game.isResearchCompleted(research.id);
+            const isParentCompleted = !research.parent_id || this.game.isResearchCompleted(research.parent_id);
+            const isLocked = !isParentCompleted;
+            
+            // Progressive Visibility Logic:
+            // Only show root nodes (no parent) OR nodes where the parent is already finished.
+            if (research.parent_id && !this.game.isResearchCompleted(research.parent_id)) {
+                return; // Hide technologies 2+ steps away
+            }
+            // Draw lines to parents (now simpler white lines for everything)
+            if (research.parent_id) {
+                const parent = researches.find(r => r.id === research.parent_id);
+                if (parent) {
+                    const pPos = this.getResearchGridPlacement(parent);
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute('x1', pPos.x);
+                    line.setAttribute('y1', pPos.y);
+                    line.setAttribute('x2', placement.x);
+                    line.setAttribute('y2', placement.y);
+                    line.setAttribute('class', 'research-line');
+                    svg.appendChild(line);
+                }
+            }
+
+            const card = document.createElement('div');
             const isActive = researchState.activeResearchId === research.id;
-            const canStart = this.game.canStartResearch(research.id);
+            const canStart = this.game.canStartResearch(research.id) && !isLocked;
             const adjustedDuration = this.game.getAdjustedResearchDuration(research.durationMs);
             const remainingTime = isActive ? this.game.getResearchRemainingTime() : adjustedDuration;
             const progressPercent = isActive && adjustedDuration > 0 ? (adjustedDuration - remainingTime) / adjustedDuration : 0;
             const fillPercent = isCompleted ? 100 : isActive ? Math.max(0, Math.min(100, progressPercent * 100)) : 0;
             
-            const placement = this.getResearchGridPlacement(research);
-
-            card.className = `research-card${index === 0 ? ' is-primary' : ''}${isCompleted ? ' is-completed' : ''}${isActive ? ' is-active' : ''}${!canStart && !isCompleted && !isActive ? ' is-disabled' : ''}`;
+            card.className = `research-card${isCompleted ? ' is-completed' : ''}${isActive ? ' is-active' : ''}${isLocked ? ' is-locked' : ''}${!canStart && !isCompleted && !isActive && !isLocked ? ' is-disabled' : ''}`;
+            card.dataset.researchId = research.id;
             card.style.left = placement.left;
             card.style.top = placement.top;
             card.style.setProperty('--research-fill', `${fillPercent}%`);
             
+            // Hidden Logic
+            const titleText = isLocked ? "" : research.name;
+            const finalImg = isLocked ? "https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/new_hidden.png" : (research.image || 'https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/research-item.png');
+
             card.innerHTML = `
                 <div class="research-card-content">
-                    <div class="research-card-title">${research.name}</div>
-                    <img src="${research.image || 'https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/research-item.png'}" alt="Research" class="research-card-icon">
+                    <div class="research-card-title">${titleText}</div>
+                    <img src="${finalImg}" alt="Research" class="research-card-icon">
                 </div>
             `;
 
@@ -189,7 +273,7 @@ Object.assign(UI.prototype, {
             card.addEventListener('mousemove', () => this.positionResearchTooltip(card));
             card.addEventListener('mouseleave', () => this.hideResearchTooltip());
             card.addEventListener('click', (e) => {
-                if (this.isDraggingResearch) return; // Don't click while dragging
+                if (this.isDraggingResearch || isLocked) return; 
                 if (this.game.startResearch(research.id)) {
                     this.renderResearchModal();
                 }
@@ -200,8 +284,22 @@ Object.assign(UI.prototype, {
     },
 
     updateResearchDisplayIfOpen() {
-        if (this.researchModal && this.researchModal.style.display === 'block') {
-            this.renderResearchModal();
+        if (!this.researchModal || this.researchModal.style.display !== 'block') {
+            return;
+        }
+
+        const activeId = this.game.getResearchState().activeResearchId;
+        if (!activeId) return;
+
+        // Surgical update: Find the specific card and update its fill percentage
+        const card = this.researchGridElement.querySelector(`.research-card[data-research-id="${activeId}"]`);
+        if (card) {
+            const research = this.game.getResearchById(activeId);
+            const adjustedDuration = this.game.getAdjustedResearchDuration(research.durationMs);
+            const remainingTime = this.game.getResearchRemainingTime();
+            const progressPercent = adjustedDuration > 0 ? (adjustedDuration - remainingTime) / adjustedDuration : 0;
+            const fillPercent = Math.max(0, Math.min(100, progressPercent * 100));
+            card.style.setProperty('--research-fill', `${fillPercent}%`);
         }
     }
 });

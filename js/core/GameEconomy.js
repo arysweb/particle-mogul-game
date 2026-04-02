@@ -29,8 +29,7 @@ Object.assign(Game.prototype, {
         }
 
         this.traderState.level += 1;
-        this.traderState.sellAmount += 5;
-        this.traderState.intervalMs = Math.max(1500, this.traderState.intervalMs - 500);
+        this.traderState.intervalMs = Math.max(1000, this.traderState.intervalMs - 500);
         this.traderState.upgradeCost += 200;
         this.ui.updateDisplay();
         this.ui.updateTraderCard();
@@ -59,7 +58,8 @@ Object.assign(Game.prototype, {
             return;
         }
 
-        const sellAmount = Math.min(this.traderState.sellAmount, availableCount);
+        const effectiveAmount = this.getEffectiveTraderSellAmount();
+        const sellAmount = Math.min(effectiveAmount, availableCount);
         const soldCount = this.sellParticleType(selectedParticle, this.getSellPrice(selectedParticle), `${selectedParticle}Count`, sellAmount);
 
         this.traderState.lastSellAt = now;

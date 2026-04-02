@@ -13,7 +13,8 @@ class SaveManager {
                 walletBalance: game.state.walletBalance,
                 sellCap: game.state.sellCap,
                 goldDrops: game.state.goldDrops,
-                rareParticlesUnlocked: game.state.rareParticlesUnlocked
+                rareParticlesUnlocked: game.state.rareParticlesUnlocked,
+                clickDropAmount: game.state.clickDropAmount || 1
             },
             researchState: {
                 completedResearchIds: [...game.researchState.completedResearchIds],
@@ -58,6 +59,7 @@ class SaveManager {
             game.state.sellCap = Math.max(0, saveData.state.sellCap || 10);
             game.state.goldDrops = Math.max(0, saveData.state.goldDrops || 0);
             game.state.rareParticlesUnlocked = saveData.state.rareParticlesUnlocked === true || game.state.goldDrops >= 3;
+            game.state.clickDropAmount = Math.max(1, saveData.state.clickDropAmount || 1);
         }
 
         if (saveData.researchState && typeof saveData.researchState === 'object') {

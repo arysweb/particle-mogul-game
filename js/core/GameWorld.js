@@ -42,13 +42,24 @@ Object.assign(Game.prototype, {
     setupEventListeners() {
         this.canvas.addEventListener('click', () => {
             const x = this.canvas.width / 2;
-            this.dropSandAt(x, 50);
+            const amount = this.getEffectiveClickDropAmount();
+            
+            for (let i = 0; i < amount; i++) {
+                // Add a small jitter so multiple particles don't drop at the exact same pixel
+                const jitter = (Math.random() - 0.5) * 20;
+                this.dropSandAt(x + jitter, 50);
+            }
         });
 
         this.canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             const x = this.canvas.width / 2;
-            this.dropSandAt(x, 50);
+            const amount = this.getEffectiveClickDropAmount();
+            
+            for (let i = 0; i < amount; i++) {
+                const jitter = (Math.random() - 0.5) * 20;
+                this.dropSandAt(x + jitter, 50);
+            }
         });
 
         window.addEventListener('beforeunload', () => {
@@ -112,13 +123,20 @@ Object.assign(Game.prototype, {
     startAutoDrop() {
         if (this.autoDropInterval) {
             clearInterval(this.autoDropInterval);
+            this.autoDropInterval = null;
+        }
+
+        if (!this.isAutoDropUnlocked()) {
+            return;
         }
 
         const effectiveDropInterval = this.getEffectiveDropInterval();
-        this.autoDropInterval = setInterval(() => {
-            const x = this.canvas.width / 2;
-            this.dropSandAt(x, 50);
-        }, effectiveDropInterval);
+        if (effectiveDropInterval > 0) {
+            this.autoDropInterval = setInterval(() => {
+                const x = this.canvas.width / 2;
+                this.dropSandAt(x, 50);
+            }, effectiveDropInterval);
+        }
     },
 
     startExtractorUpdates() {
@@ -135,9 +153,19 @@ Object.assign(Game.prototype, {
     },
 
     updateExtractorStats() {
+        const isUnlocked = this.isAutoDropUnlocked();
         const dropRate = this.getEffectiveExtractorDropRate();
         const extractorBonusLabel = document.getElementById('extractorBonusLabel');
-        document.getElementById('dropRate').textContent = dropRate.toFixed(2).replace(/\.00$/, '');
+        const dropRateElement = document.getElementById('dropRate');
+        const extractorContainer = document.querySelector('.extractor');
+        
+        if (extractorContainer) {
+            extractorContainer.style.display = isUnlocked ? 'block' : 'none';
+        }
+        
+        if (dropRateElement) {
+            dropRateElement.textContent = isUnlocked ? dropRate.toFixed(2).replace(/\.00$/, '') : '';
+        }
 
         if (extractorBonusLabel) {
             const bonusPercent = this.getExtractorBonusPercent();

@@ -30,7 +30,6 @@ checkAdmin();
         input, textarea, select { width: 100%; padding: 10px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; }
         button.save-btn { background: #ffd700; color: #000; font-weight: bold; padding: 12px; width: 100%; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
         button.delete-btn { background: #ff5555; color: #fff; padding: 8px; width: 100%; border: none; border-radius: 6px; cursor: pointer; margin-top: 5px; }
-        .coord-indicator { position: fixed; bottom: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 6px; border: 1px solid #ffd700; z-index: 2000; pointer-events: none; }
         
         .grid-clicker { position: absolute; inset: 0; z-index: 1; }
         #gridItems { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
@@ -52,7 +51,6 @@ checkAdmin();
     </div>
 </div>
 
-<div class="coord-indicator" id="statusIndicator">Hover over grid to see coordinates</div>
 
 <div class="grid-container">
     <div class="research-grid-viewport" id="viewport">
@@ -127,7 +125,14 @@ checkAdmin();
         </div>
 
         <div class="form-group">
-            <label style="color: #ffd700; border-top: 1px solid #444; padding-top: 10px;">Effect (JSON logic)</label>
+            <label style="color: #ffd700; border-top: 1px solid #444; padding-top: 10px;">Parent Research (Prerequisite)</label>
+            <select id="field_parent" name="parent_id">
+                <option value="">None (Starting Point)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label style="color: #ffd700;">Effect (JSON logic)</label>
             <textarea id="field_effect" name="effect_json" rows="3" placeholder='{"type": "multiplier", "value": 1.1}'></textarea>
         </div>
         
@@ -165,6 +170,17 @@ checkAdmin();
             if (!res.ok) throw new Error("HTTP error " + res.status);
             state.researches = await res.json();
             console.log("Loaded researches:", state.researches.length);
+            
+            // Populate parent dropdown
+            const parentSelect = document.getElementById('field_parent');
+            parentSelect.innerHTML = '<option value="">None (Starting Point)</option>';
+            state.researches.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.textContent = r.name;
+                parentSelect.appendChild(opt);
+            });
+
             renderTree();
         } catch (e) {
             console.error("Fetch failed:", e);
@@ -174,12 +190,42 @@ checkAdmin();
 
     function renderTree() {
         gridItems.innerHTML = '';
+        
+        // Draw lines first (so they are below cards)
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.style.position = 'absolute';
+        svg.style.inset = '0';
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.pointerEvents = 'none';
+        svg.style.zIndex = '2';
+        gridItems.appendChild(svg);
+
         state.researches.forEach(res => {
-            console.log("Rendering card:", res.id, res.gridPosition);
+            // Draw line to parent if exists
+            if (res.parent_id) {
+                const parent = state.researches.find(r => r.id === res.parent_id);
+                if (parent) {
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    const x1 = 5000 + (parent.gridPosition.x * state.cellSize);
+                    const y1 = 5000 + (parent.gridPosition.y * state.cellSize);
+                    const x2 = 5000 + (res.gridPosition.x * state.cellSize);
+                    const y2 = 5000 + (res.gridPosition.y * state.cellSize);
+                    line.setAttribute('x1', x1);
+                    line.setAttribute('y1', y1);
+                    line.setAttribute('x2', x2);
+                    line.setAttribute('y2', y2);
+                    line.setAttribute('stroke', 'rgba(255, 215, 0, 0.3)');
+                    line.setAttribute('stroke-width', '4');
+                    svg.appendChild(line);
+                }
+            }
+
             const card = document.createElement('div');
             card.className = 'research-card';
             card.style.left = `calc(50% + ${res.gridPosition.x * state.cellSize}px)`;
             card.style.top = `calc(50% + ${res.gridPosition.y * state.cellSize}px)`;
+            card.style.zIndex = '10';
             card.innerHTML = `
                 <div class="research-card-content">
                     <div class="research-card-title">${res.name}</div>
@@ -193,7 +239,7 @@ checkAdmin();
             gridItems.appendChild(card);
         });
     }
-
+    
     // Navigation
     board.addEventListener('mousedown', (e) => {
         if (e.target !== clicker && e.target !== board) return;
@@ -221,8 +267,6 @@ checkAdmin();
         const isSpaced = (Math.abs(state.currentX) + Math.abs(state.currentY)) % 2 === 0;
         
         document.getElementById('coordDisplay').textContent = `X: ${state.currentX}, Y: ${state.currentY} ${isSpaced ? '✅' : '❌'}`;
-        document.getElementById('statusIndicator').textContent = isSpaced ? "Click to add here" : "Invalid cell (must be spaced)";
-        document.getElementById('statusIndicator').style.borderColor = isSpaced ? "#ffd700" : "#ff5555";
 
         if (!state.isDragging) return;
         
@@ -242,6 +286,15 @@ checkAdmin();
         state.isDragging = false;
         board.style.transition = 'transform 0.1s linear';
     });
+    
+    // Zoom
+    window.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const direction = e.deltaY < 0 ? 1 : -1;
+        const nextZoom = state.zoom * (direction > 0 ? 1.1 : 0.9);
+        state.zoom = Math.max(0.1, Math.min(2.0, nextZoom));
+        updateTransform();
+    }, { passive: false });
 
     function updateTransform() {
         board.style.setProperty('--research-pan-x', `${state.panX}px`);
@@ -252,7 +305,7 @@ checkAdmin();
     // Interaction
     clicker.onclick = () => {
         const isSpaced = (Math.abs(state.currentX) + Math.abs(state.currentY)) % 2 === 0;
-        if (!isSpaced) return alert("You must place items in a spaced pattern (skipping one cell).");
+        if (!isSpaced) return; // Silent return to avoid interrupting pan/drag
         
         openEditor({
             id: '',
@@ -279,6 +332,7 @@ checkAdmin();
         document.getElementById('field_image').value = res.image || res.image_url || '';
         document.getElementById('field_x').value = res.gridPosition ? res.gridPosition.x : state.currentX;
         document.getElementById('field_y').value = res.gridPosition ? res.gridPosition.y : state.currentY;
+        document.getElementById('field_parent').value = res.parent_id || '';
         
         // Duration: ms -> sec
         document.getElementById('field_duration_sec').value = res.durationMs ? (res.durationMs / 1000) : 5;
@@ -300,6 +354,8 @@ checkAdmin();
         
         sidebar.classList.add('open');
     }
+
+    // ... slugify ...
 
     function slugify(text) {
         return text.toString().toLowerCase()
@@ -344,6 +400,7 @@ checkAdmin();
             image_url: rawData.image_url || 'https://pub-136c85f7b0db4549ba25bf23723988bf.r2.dev/assets/image/research-item.png',
             grid_x: rawData.grid_x,
             grid_y: rawData.grid_y,
+            parent_id: rawData.parent_id || null,
             duration_ms: (parseFloat(rawData.duration_sec) || 5) * 1000,
             cost_json: JSON.stringify(costObj),
             effect_json: rawData.effect_json

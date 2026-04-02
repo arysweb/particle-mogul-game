@@ -17,9 +17,18 @@ if (!$input || empty($input['id'])) {
 }
 
 try {
-    $stmt = $pdo->prepare("INSERT INTO research_items (id, name, description, image_url, grid_x, grid_y, cost_json, duration_ms, effect_json) 
-        VALUES (:id, :name, :description, :image_url, :grid_x, :grid_y, :cost_json, :duration_ms, :effect_json)
-        ON DUPLICATE KEY UPDATE name=VALUES(name), description=VALUES(description), image_url=VALUES(image_url), grid_x=VALUES(grid_x), grid_y=VALUES(grid_y), cost_json=VALUES(cost_json), duration_ms=VALUES(duration_ms), effect_json=VALUES(effect_json)");
+    $stmt = $pdo->prepare("INSERT INTO research_items (id, name, description, image_url, grid_x, grid_y, cost_json, duration_ms, effect_json, parent_id) 
+        VALUES (:id, :name, :description, :image_url, :grid_x, :grid_y, :cost_json, :duration_ms, :effect_json, :parent_id)
+        ON DUPLICATE KEY UPDATE 
+            name=VALUES(name), 
+            description=VALUES(description), 
+            image_url=VALUES(image_url), 
+            grid_x=VALUES(grid_x), 
+            grid_y=VALUES(grid_y), 
+            cost_json=VALUES(cost_json), 
+            duration_ms=VALUES(duration_ms), 
+            effect_json=VALUES(effect_json),
+            parent_id=VALUES(parent_id)");
     
     $stmt->execute([
         'id' => $input['id'],
@@ -30,7 +39,8 @@ try {
         'grid_y' => (int)$input['grid_y'],
         'cost_json' => $input['cost_json'],
         'duration_ms' => (int)$input['duration_ms'],
-        'effect_json' => $input['effect_json']
+        'effect_json' => $input['effect_json'],
+        'parent_id' => !empty($input['parent_id']) ? $input['parent_id'] : null
     ]);
 
     echo json_encode(['success' => true]);

@@ -13,7 +13,8 @@ class GameData {
             walletBalance: 0,
             sellCap: 10,
             goldDrops: 0,
-            rareParticlesUnlocked: false
+            rareParticlesUnlocked: false,
+            clickDropAmount: 0
         };
     }
 

@@ -18,7 +18,8 @@ try {
             ],
             'cost' => json_decode($item['cost_json'], true),
             'durationMs' => (int)$item['duration_ms'],
-            'effect' => json_decode($item['effect_json'], true)
+            'effect' => json_decode($item['effect_json'], true),
+            'parent_id' => $item['parent_id']
         ];
     }, $items);
 

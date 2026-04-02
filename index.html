@@ -381,6 +381,9 @@
         function clearSaveData() {
             try {
                 localStorage.removeItem(storageKey);
+                localStorage.removeItem('particle_mogul_uid');
+                localStorage.removeItem('particle_mogul_name');
+                console.log('All save data and identifiers cleared.');
             } catch (error) {
                 console.log('Could not clear save data');
             }
@@ -451,11 +454,14 @@
         });
 
         document.getElementById('deleteSaveBtn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to delete this save game?')) {
-                clearSaveData();
-                modal.style.display = 'none';
-                checkForSave();
-            }
+            clearSaveData();
+            modal.style.display = 'none';
+            // Update UI immediately
+            continueButton.style.display = 'none';
+            noSaveMessage.style.display = 'block';
+            
+            // Reload to ensure a clean state
+            window.location.reload();
         });
 
         // Close modal when clicking outside

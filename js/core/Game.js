@@ -141,6 +141,31 @@ class Game {
         return true;
     }
 
+    getEffectiveClickDropAmount() {
+        if (!this.isClickerUnlocked()) return 0;
+
+        // Base value from state (defaults to 1 if unlocked)
+        const base = Math.max(1, this.state.clickDropAmount || 0);
+
+        // Cumulative multiplier from research (future-proofing)
+        const multiplier = this.researchDefinitions.reduce((acc, r) => {
+            if (this.isResearchCompleted(r.id) && r.effect && r.effect.type === 'click_drop_multiplier') {
+                return acc * r.effect.value;
+            }
+            return acc;
+        }, 1);
+
+        // Flat bonus from research (future-proofing)
+        const bonus = this.researchDefinitions.reduce((acc, r) => {
+            if (this.isResearchCompleted(r.id) && r.effect && r.effect.type === 'click_drop_bonus') {
+                return acc + (r.effect.value || 0);
+            }
+            return acc;
+        }, 0);
+
+        return Math.floor(base * multiplier) + bonus;
+    }
+
     getMarketTradeRate(fromType, toType) {
         return this.marketRates[`${fromType}-${toType}`] || 1;
     }
@@ -171,6 +196,14 @@ class Game {
         }, 1);
     }
 
+    isAutoDropUnlocked() {
+        return this.researchDefinitions.some(research => 
+            this.isResearchCompleted(research.id) && 
+            research.effect && 
+            research.effect.type === 'unlock_auto_drop'
+        );
+    }
+
     getExtractorBonusPercent() {
         return Math.round((this.getExtractorResearchMultiplier() - 1) * 100);
     }
@@ -180,10 +213,12 @@ class Game {
     }
 
     getEffectiveExtractorDropRate() {
+        if (!this.isAutoDropUnlocked()) return 0;
         return this.getBaseExtractorDropRate() * this.getExtractorResearchMultiplier();
     }
 
     getEffectiveDropInterval() {
+        if (!this.isAutoDropUnlocked()) return 0;
         return Math.max(1, this.currentDropInterval / this.getExtractorResearchMultiplier());
     }
 

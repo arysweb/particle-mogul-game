@@ -1,10 +1,33 @@
 Object.assign(Game.prototype, {
     isTraderUnlocked() {
-        return this.isResearchCompleted('unlock-trader');
+        return this.researchDefinitions.some(research => 
+            this.isResearchCompleted(research.id) && 
+            research.effect && 
+            research.effect.type === 'unlock_trader'
+        );
     },
 
     isResearchCompleted(researchId) {
         return this.researchState.completedResearchIds.includes(researchId);
+    },
+
+    isClickerUnlocked() {
+        return this.researchDefinitions.some(r => 
+            this.isResearchCompleted(r.id) && 
+            r.effect && 
+            r.effect.type === 'unlock_clicker'
+        );
+    },
+
+    getEffectiveTraderSellAmount() {
+        const base = this.traderState.sellAmount || 15;
+        const bonus = this.researchDefinitions.reduce((acc, r) => {
+            if (this.isResearchCompleted(r.id) && r.effect && r.effect.type === 'trader_amount_bonus') {
+                return acc + (r.effect.value || 0);
+            }
+            return acc;
+        }, 0);
+        return base + bonus;
     },
 
     getResearchById(researchId) {

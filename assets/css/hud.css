@@ -41,7 +41,7 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     padding: 25px;
-    min-width: 300px;
+    width: 300px;
     z-index: 10;
     pointer-events: none;
 }
@@ -50,15 +50,15 @@
     font: bold 20px 'Courier New', monospace;
     color: #ffffff;
     margin: 0 0 20px 0;
-    text-align: center;
+    text-align: left;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-bottom: 12px;
+    gap: 12px;
+    margin-bottom: 8px;
 }
 
 .legend-item:last-child {
@@ -76,8 +76,11 @@
 }
 
 .legend-stats {
-    font: 14px 'Courier New', monospace;
-    color: #cccccc;
+    display: flex;
+    justify-content: space-between;
+    font: bold 14px 'Courier New', monospace;
+    color: #ffffff;
+    letter-spacing: 0.5px;
 }
 
 .production-panel {
